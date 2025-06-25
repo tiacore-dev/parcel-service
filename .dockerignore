@@ -1,0 +1,12 @@
+.env
+.env.*
+!*.test
+
+docker-compose.dev.yml
+data.txt
+
+__pycache__/
+.venv/
+.git/
+*.log
+*.pyc

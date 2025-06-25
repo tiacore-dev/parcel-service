@@ -1,0 +1,28 @@
+services:
+  redis:
+      image: redis:7-alpine
+      container_name: redis-${CONFIG_NAME}
+      restart: always
+      networks:
+      - parcel_network
+
+  web:
+    image: ${DOCKERHUB_USERNAME}/parcel-service:${TAG}
+    container_name: parcel-service-${CONFIG_NAME}
+    tty: true
+    stdin_open: true
+    restart: always
+    ports:
+      - "${PORT}:8000"
+    volumes:
+      - ./logs:/app/logs  
+      - .env:/app/.env 
+    command: >
+       gunicorn -c gunicorn.conf.py run:app
+    networks:
+      - parcel_network
+
+
+networks:
+  parcel_network:
+    external: true
