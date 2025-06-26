@@ -6,6 +6,8 @@ from tiacore_lib.routes.register_route import register_router
 from tiacore_lib.routes.role_route import role_router
 from tiacore_lib.routes.user_route import user_router
 
+from .parcel_cargo_route import parcel_cargo_router
+from .parcel_product_route import parcel_product_router
 from .parcel_route import parcel_router
 
 
@@ -18,3 +20,9 @@ def register_routes(app: FastAPI):
     app.include_router(role_router, prefix="/api/roles", tags=["Roles"])
 
     app.include_router(parcel_router, prefix="/api/parcels", tags=["Parcels"])
+    app.include_router(
+        parcel_cargo_router, prefix="/api/parcel-cargo", tags=["ParcelCargo"]
+    )
+    app.include_router(
+        parcel_product_router, prefix="/api/parcel-products", tags=["ParcelProducts"]
+    )
