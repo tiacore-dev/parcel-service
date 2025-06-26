@@ -49,9 +49,7 @@ async def setup_and_clean_db(test_settings):
     await Tortoise.close_connections()
 
 
-pytest_plugins = [
-    "tests.fixtures.main_fixture",
-]
+pytest_plugins = ["tests.fixtures.main_fixture", "tests.fixtures.parcel"]
 
 
 @pytest.fixture(scope="function")
