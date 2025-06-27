@@ -31,9 +31,7 @@ class Parcel(Model):
     sender_warehouse = fields.UUIDField()
     sender_personal_data = fields.UUIDField()
     sender_company = fields.CharField(max_length=255)
-    sender_phone = fields.CharField(
-        max_length=20
-    )  # можно регэксп потом добавить валидацией
+    sender_phone = fields.CharField(max_length=20)
     sender_email = fields.CharField(max_length=100)
     sender_telegram = fields.CharField(max_length=100)
     sender_coordinates_latitude = fields.DecimalField(max_digits=9, decimal_places=6)
@@ -108,7 +106,8 @@ class ParcelStatus(Model):
     parcel = fields.ForeignKeyField("models.Parcel", related_name="statuses")
     document_id = fields.UUIDField()
     status = fields.CharEnumField(ParcelStatusEnum)
-    value = fields.UUIDField()
+    value = fields.UUIDField(null=True)
+    date = fields.DateField()
     comment = fields.TextField(null=True)
 
     class Meta:

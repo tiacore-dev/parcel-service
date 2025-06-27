@@ -53,6 +53,7 @@ pytest_plugins = [
     "tests.fixtures.parcel",
     "tests.fixtures.parcel_cargo",
     "tests.fixtures.parcel_product",
+    "tests.fixtures.parcel_stuff",
 ]
 
 

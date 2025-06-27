@@ -6,9 +6,17 @@ from tiacore_lib.routes.register_route import register_router
 from tiacore_lib.routes.role_route import role_router
 from tiacore_lib.routes.user_route import user_router
 
+from .arrival_warehouse_route import arrival_to_warehouse_router
+from .delivery_route import delivery_router
+from .issue_to_employee import issue_to_employee_router
 from .parcel_cargo_route import parcel_cargo_router
 from .parcel_product_route import parcel_product_router
 from .parcel_route import parcel_router
+from .parcel_status_route import parcel_status_router
+from .pickup_route import pickup_router
+from .return_route import return_router
+from .transit_detail_route import transit_details_router
+from .transit_route import transit_router
 
 
 def register_routes(app: FastAPI):
@@ -25,4 +33,32 @@ def register_routes(app: FastAPI):
     )
     app.include_router(
         parcel_product_router, prefix="/api/parcel-products", tags=["ParcelProducts"]
+    )
+    app.include_router(
+        parcel_status_router, prefix="/api/parcel-status", tags=["ParcelStatus"]
+    )
+    app.include_router(
+        pickup_router,
+        prefix="/api/pickup-from-sender",
+        tags=["Pickup"],
+    )
+    app.include_router(
+        delivery_router,
+        prefix="/api/delivery-to-recipient",
+        tags=["DeliveryToRecipient"],
+    )
+    app.include_router(return_router, prefix="/api/return", tags=["Return"])
+    app.include_router(
+        arrival_to_warehouse_router,
+        prefix="/api/arrival-to-warehouse",
+        tags=["ArrivalToWarehouse"],
+    )
+    app.include_router(
+        issue_to_employee_router,
+        prefix="/api/issue-to-employee",
+        tags=["IssueToEmployee"],
+    )
+    app.include_router(transit_router, prefix="/api/transit", tags=["Transit"])
+    app.include_router(
+        transit_details_router, prefix="/api/transit-details", tags=["TransitDetails"]
     )

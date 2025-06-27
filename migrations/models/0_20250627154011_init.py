@@ -86,7 +86,8 @@ CREATE TABLE IF NOT EXISTS "parcel_statuses" (
     "id" UUID NOT NULL PRIMARY KEY,
     "document_id" UUID NOT NULL,
     "status" VARCHAR(13) NOT NULL,
-    "value" UUID NOT NULL,
+    "value" UUID,
+    "date" DATE NOT NULL,
     "comment" TEXT,
     "parcel_id" UUID NOT NULL REFERENCES "parcels" ("id") ON DELETE CASCADE
 );
