@@ -53,7 +53,7 @@ async def add_pickup_from_sender(
 )
 async def get_pickup_from_sender_list(
     filters: dict = Depends(pickup_from_sender_filter_params),
-    _: dict = Depends(require_permission_in_context("get_all_pickup_from_sender")),
+    _: dict = Depends(require_permission_in_context("get_all_pickups_from_sender")),
 ):
     query = Q()
 

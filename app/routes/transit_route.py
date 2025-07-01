@@ -39,7 +39,7 @@ async def add_transit(
 )
 async def get_transit_list(
     filters: dict = Depends(transit_filter_params),
-    _: dict = Depends(require_permission_in_context("get_all_transit")),
+    _: dict = Depends(require_permission_in_context("get_all_transits")),
 ):
     query = Q()
 

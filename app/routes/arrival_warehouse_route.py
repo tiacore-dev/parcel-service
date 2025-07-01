@@ -58,7 +58,7 @@ async def add_arrival_to_warehouse(
 )
 async def get_arrival_to_warehouse_list(
     filters: dict = Depends(arrival_to_warehouse_filter_params),
-    _: dict = Depends(require_permission_in_context("get_all_arrival_to_warehouse")),
+    _: dict = Depends(require_permission_in_context("get_all_arrivals_to_warehouse")),
 ):
     query = Q()
 

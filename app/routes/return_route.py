@@ -52,7 +52,7 @@ async def add_return_to_sender(
 )
 async def get_return_to_sender_list(
     filters: dict = Depends(return_to_sender_filter_params),
-    _: dict = Depends(require_permission_in_context("get_all_return_to_sender")),
+    _: dict = Depends(require_permission_in_context("get_all_returns_to_sender")),
 ):
     query = Q()
 

@@ -57,7 +57,7 @@ async def add_delivery_to_recipient(
 )
 async def get_delivery_to_recipient_list(
     filters: dict = Depends(delivery_to_recipient_filter_params),
-    _: dict = Depends(require_permission_in_context("get_all_delivery_to_recipient")),
+    _: dict = Depends(require_permission_in_context("get_all_deliveries_to_recipient")),
 ):
     query = Q()
 

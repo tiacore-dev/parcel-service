@@ -53,7 +53,7 @@ async def add_issue_to_employee(
 )
 async def get_issue_to_employee_list(
     filters: dict = Depends(issue_to_employee_filter_params),
-    _: dict = Depends(require_permission_in_context("get_all_issue_to_employee")),
+    _: dict = Depends(require_permission_in_context("get_all_issues_to_employee")),
 ):
     query = Q()
 
