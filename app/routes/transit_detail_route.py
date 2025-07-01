@@ -12,6 +12,10 @@ from app.database.models import (
     Transit,
     TransitDetails,
 )
+from app.handlers.status_handler import (
+    invalidate_parcel_status_cache,
+    save_parcel_status_to_cache,
+)
 from app.pydantic_models.transit_details_models import (
     TransitDetailsCreateSchema,
     TransitDetailsEditSchema,
@@ -40,12 +44,14 @@ async def add_transit_details(
     await validate_exists(Parcel, data.parcel_id, "Накладная")
 
     detail = await TransitDetails.create(**data.model_dump())
-    await ParcelStatus.create(
+    status = await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=detail.id,
         status=ParcelStatusEnum.IN_TRANSIT,
         date=transit.date,
     )
+    await invalidate_parcel_status_cache(data.parcel_id)
+    await save_parcel_status_to_cache(**status.to_cache_dict())
     return TransitDetailsResponseSchema(details_id=detail.id)
 
 

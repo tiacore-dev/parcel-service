@@ -11,6 +11,10 @@ from app.database.models import (
     ParcelStatus,
     ParcelStatusEnum,
 )
+from app.handlers.status_handler import (
+    invalidate_parcel_status_cache,
+    save_parcel_status_to_cache,
+)
 from app.pydantic_models.delivery_models import (
     DeliveryToRecipientCreateSchema,
     DeliveryToRecipientEditSchema,
@@ -35,12 +39,14 @@ async def add_delivery_to_recipient(
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
     delivery = await DeliveryToRecipient.create(**data.model_dump())
-    await ParcelStatus.create(
+    status = await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=delivery.id,
         status=ParcelStatusEnum.DELIVERED,
         date=data.date,
     )
+    await invalidate_parcel_status_cache(data.parcel_id)
+    await save_parcel_status_to_cache(**status.to_cache_dict())
     return DeliveryToRecipientResponseSchema(delivery_id=delivery.id)
 
 

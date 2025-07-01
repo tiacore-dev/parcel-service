@@ -24,6 +24,7 @@ class ParcelStatusEnum(str, Enum):
 
 class Parcel(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    name = fields.CharField(max_length=255, unique=True)
 
     # Отправитель
     sender_city = fields.UUIDField()
@@ -103,12 +104,26 @@ class ParcelProduct(Model):
 
 class ParcelStatus(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
-    parcel = fields.ForeignKeyField("models.Parcel", related_name="statuses")
+    parcel = fields.ForeignKeyField(
+        "models.Parcel",
+        related_name="statuses",
+        on_delete=fields.CASCADE,
+    )
     document_id = fields.UUIDField()
     status = fields.CharEnumField(ParcelStatusEnum)
     value = fields.UUIDField(null=True)
     date = fields.DateField()
     comment = fields.TextField(null=True)
+
+    def to_cache_dict(self):
+        return {
+            "parcel_id": self.parcel_id,  # type: ignore
+            "document_id": self.document_id,
+            "status": self.status,
+            "value": self.value,
+            "date": self.date,
+            "comment": self.comment,
+        }
 
     class Meta:
         table = "parcel_statuses"

@@ -4,12 +4,12 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
-from app.database.models import ArrivalToWarehouse
+from app.database.models import ArrivalToWarehouse, Parcel
 
 
 @pytest.mark.asyncio
 async def test_add_arrival_to_warehouse(
-    test_app: AsyncClient, jwt_token_admin, seed_parcel
+    test_app: AsyncClient, jwt_token_admin, seed_parcel: Parcel
 ):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 

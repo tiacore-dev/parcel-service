@@ -6,6 +6,10 @@ from tiacore_lib.utils.validate_helpers import validate_exists
 from tortoise.expressions import Q
 
 from app.database.models import Parcel, ParcelStatus, ParcelStatusEnum, PickupFromSender
+from app.handlers.status_handler import (
+    invalidate_parcel_status_cache,
+    save_parcel_status_to_cache,
+)
 from app.pydantic_models.pickup_models import (
     PickupFromSenderCreateSchema,
     PickupFromSenderEditSchema,
@@ -30,13 +34,15 @@ async def add_pickup_from_sender(
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
     pickup = await PickupFromSender.create(**data.model_dump())
-    await ParcelStatus.create(
+    status = await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=pickup.id,
         status=ParcelStatusEnum.WITH_EMPLOYEE,
         date=data.date,
         value=data.employee_id,
     )
+    await invalidate_parcel_status_cache(data.parcel_id)
+    await save_parcel_status_to_cache(**status.to_cache_dict())
     return PickupFromSenderResponseSchema(pickup_id=pickup.id)
 
 

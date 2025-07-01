@@ -11,6 +11,10 @@ from app.database.models import (
     ParcelStatus,
     ParcelStatusEnum,
 )
+from app.handlers.status_handler import (
+    invalidate_parcel_status_cache,
+    save_parcel_status_to_cache,
+)
 from app.pydantic_models.arrival_warehouse_models import (
     ArrivalToWarehouseCreateSchema,
     ArrivalToWarehouseEditSchema,
@@ -35,13 +39,15 @@ async def add_arrival_to_warehouse(
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
     arrival = await ArrivalToWarehouse.create(**data.model_dump())
-    await ParcelStatus.create(
+    status = await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=arrival.id,
         status=ParcelStatusEnum.ON_WAREHOUSE,
         date=data.date,
         value=data.warehouse_id,
     )
+    await invalidate_parcel_status_cache(data.parcel_id)
+    await save_parcel_status_to_cache(**status.to_cache_dict())
     return ArrivalToWarehouseResponseSchema(arrival_id=arrival.id)
 
 

@@ -5,8 +5,10 @@ from tiacore_lib.handlers.dependency_handler import require_permission_in_contex
 from tortoise.expressions import Q
 
 from app.database.models import Parcel
+from app.handlers.status_handler import get_cached_parcel_status_data
 from app.pydantic_models.parcel_models import (
     ParcelCreateSchema,
+    ParcelCurrentStatusSchema,
     ParcelEditSchema,
     ParcelListResponseSchema,
     ParcelResponseSchema,
@@ -78,6 +80,8 @@ async def get_parcels(
     _: dict = Depends(require_permission_in_context("get_all_parcels")),
 ):
     query = Q()
+    if filters.get("parcel_name"):
+        query &= Q(name__icontains=filters["parcel_name"])
 
     if filters.get("sender_city"):
         query &= Q(sender_city=filters["sender_city"])
@@ -130,6 +134,8 @@ async def get_parcels(
         )
 
     sort_by = filters.get("sort_by", "created_at")
+    if sort_by == "parcel_name":
+        sort_by = "name"
     order = filters.get("order", "asc").lower()
     sort_field = sort_by if order == "asc" else f"-{sort_by}"
     page = filters.get("page", 1)
@@ -148,6 +154,19 @@ async def get_parcels(
             for parcel in parcels
         ],
     )
+
+
+@parcel_router.get(
+    "/{parcel_id}/status",
+    response_model=ParcelCurrentStatusSchema,
+    summary="Получение актуального статуса накладной",
+)
+async def get_parcel_status(
+    parcel_id: UUID,
+    _: dict = Depends(require_permission_in_context("get_parcel_current_status")),
+):
+    data = await get_cached_parcel_status_data(parcel_id=parcel_id)
+    return ParcelCurrentStatusSchema(**data)
 
 
 @parcel_router.get(

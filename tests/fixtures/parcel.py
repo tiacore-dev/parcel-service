@@ -10,6 +10,7 @@ from app.database.models import Parcel
 @pytest.fixture
 async def seed_parcel():
     parcel = await Parcel.create(
+        name="111111",
         sender_city=uuid4(),
         sender_address="ул. Тестовая, д.1",
         sender_warehouse=uuid4(),

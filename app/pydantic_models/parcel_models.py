@@ -6,8 +6,11 @@ from uuid import UUID
 from fastapi import Query
 from pydantic import BaseModel, Field
 
+from app.database.models import ParcelStatusEnum
+
 
 class ParcelCreateSchema(BaseModel):
+    name: str = Field(..., alias="parcel_name")
     # Отправитель
     sender_city: UUID
     sender_address: str = Field(..., max_length=255)
@@ -52,6 +55,7 @@ class ParcelCreateSchema(BaseModel):
 
 
 class ParcelEditSchema(BaseModel):
+    name: Optional[str] = Field(None, alias="parcel_name")
     # Всё опционально для PATCH/UPDATE
     sender_city: Optional[UUID] = None
     sender_address: Optional[str] = Field(None, max_length=255)
@@ -102,6 +106,7 @@ class ParcelResponseSchema(BaseModel):
 
 class ParcelSchema(BaseModel):
     id: UUID = Field(..., alias="parcel_id")
+    name: str = Field(..., alias="parcel_name")
 
     # Отправитель
     sender_city: UUID
@@ -155,7 +160,20 @@ class ParcelListResponseSchema(BaseModel):
         populate_by_name = True
 
 
+class ParcelCurrentStatusSchema(BaseModel):
+    parcel_id: UUID
+    document_id: UUID
+    status: ParcelStatusEnum
+    value: UUID
+    comment: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
+
 def parcel_filter_params(
+    parcel_name: Optional[str] = Query(None, description="Номер накладной"),
     sender_city: Optional[UUID] = Query(None, description="Город отправителя"),
     recipient_city: Optional[UUID] = Query(None, description="Город получателя"),
     sender_warehouse: Optional[UUID] = Query(None, description="Склад отправителя"),
@@ -186,6 +204,7 @@ def parcel_filter_params(
     page_size: Optional[int] = Query(10, ge=1, le=100),
 ):
     return {
+        "parcel_name": parcel_name,
         "sender_city": sender_city,
         "recipient_city": recipient_city,
         "sender_warehouse": sender_warehouse,
