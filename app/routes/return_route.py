@@ -130,6 +130,13 @@ async def edit_return_to_sender(
 
     await return_obj.update_from_dict(data.model_dump(exclude_unset=True))
     await return_obj.save()
+    await ParcelStatus.filter(document_id=return_id).delete()
+    await ParcelStatus.create(
+        parcel_id=return_obj.parcel.id,
+        document_id=return_obj.id,
+        status=ParcelStatusEnum.RETURNED,
+        date=return_obj.date,
+    )
     await recalculate_parcel_status(return_obj.parcel.id)
 
     return ReturnToSenderResponseSchema(return_id=return_obj.id)
@@ -150,6 +157,7 @@ async def delete_return_to_sender(
 
     if not return_obj:
         raise HTTPException(status_code=404, detail="Событие не найдено")
+    await ParcelStatus.filter(document_id=return_id).delete()
     await recalculate_parcel_status(return_obj.parcel.id)
     await return_obj.delete()
     return

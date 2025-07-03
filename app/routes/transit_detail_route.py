@@ -120,7 +120,9 @@ async def edit_transit_details(
     _: dict = Depends(require_permission_in_context("edit_transit_details")),
 ):
     detail = (
-        await TransitDetails.filter(id=details_id).prefetch_related("parcel").first()
+        await TransitDetails.filter(id=details_id)
+        .prefetch_related("parcel", "transit")
+        .first()
     )
 
     if not detail:
@@ -128,6 +130,13 @@ async def edit_transit_details(
 
     await detail.update_from_dict(data.model_dump(exclude_unset=True))
     await detail.save()
+    await recalculate_parcel_status(detail.parcel.id)
+    await ParcelStatus.create(
+        parcel_id=detail.parcel.id,
+        document_id=detail.id,
+        status=ParcelStatusEnum.IN_TRANSIT,
+        date=detail.transit.date,
+    )
     await recalculate_parcel_status(detail.parcel.id)
     return TransitDetailsResponseSchema(details_id=detail.id)
 
@@ -147,6 +156,7 @@ async def delete_transit_details(
 
     if not detail:
         raise HTTPException(status_code=404, detail="Деталь транзита не найдена")
+    await recalculate_parcel_status(detail.parcel.id)
     await recalculate_parcel_status(detail.parcel.id)
     await detail.delete()
     return

@@ -123,6 +123,14 @@ async def edit_issue_to_employee(
 
     await issue.update_from_dict(data.model_dump(exclude_unset=True))
     await issue.save()
+    await ParcelStatus.filter(document_id=issue_id).delete()
+    await ParcelStatus.create(
+        parcel_id=issue.parcel.id,
+        document_id=issue.id,
+        status=ParcelStatusEnum.WITH_EMPLOYEE,
+        date=issue.date,
+        value=issue.employee_id,
+    )
     await recalculate_parcel_status(issue.parcel.id)
 
     return IssueToEmployeeResponseSchema(issue_id=issue.id)
@@ -141,6 +149,7 @@ async def delete_issue_to_employee(
 
     if not issue:
         raise HTTPException(status_code=404, detail="Событие не найдено")
+    await ParcelStatus.filter(document_id=issue_id).delete()
     await recalculate_parcel_status(issue.parcel.id)
     await issue.delete()
 

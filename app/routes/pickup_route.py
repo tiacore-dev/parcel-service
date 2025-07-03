@@ -140,6 +140,24 @@ async def edit_pickup_from_sender(
 
     await pickup.update_from_dict(data.model_dump(exclude_unset=True))
     await pickup.save()
+    await ParcelStatus.filter(document_id=pickup_id).delete()
+    if pickup.warehouse_id:
+        await ParcelStatus.create(
+            parcel_id=pickup.parcel.id,
+            document_id=pickup.id,
+            status=ParcelStatusEnum.ON_WAREHOUSE,
+            date=pickup.date,
+            value=pickup.warehouse_id,
+        )
+    else:
+        await ParcelStatus.create(
+            parcel_id=pickup.parcel.id,
+            document_id=pickup.id,
+            status=ParcelStatusEnum.WITH_EMPLOYEE,
+            date=pickup.date,
+            value=pickup.employee_id,
+        )
+
     await recalculate_parcel_status(pickup.parcel.id)
 
     return PickupFromSenderResponseSchema(pickup_id=pickup.id)
@@ -160,6 +178,7 @@ async def delete_pickup_from_sender(
 
     if not pickup:
         raise HTTPException(status_code=404, detail="Событие не найдено")
+    await ParcelStatus.filter(document_id=pickup_id).delete()
     await recalculate_parcel_status(pickup.parcel.id)
     await pickup.delete()
     return

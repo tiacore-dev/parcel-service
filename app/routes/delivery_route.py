@@ -137,6 +137,13 @@ async def edit_delivery_to_recipient(
 
     await delivery.update_from_dict(data.model_dump(exclude_unset=True))
     await delivery.save()
+    await ParcelStatus.filter(document_id=delivery_id).delete()
+    await ParcelStatus.create(
+        parcel_id=delivery.parcel.id,
+        document_id=delivery.id,
+        status=ParcelStatusEnum.DELIVERED,
+        date=delivery.date,
+    )
     await recalculate_parcel_status(delivery.parcel.id)
 
     return DeliveryToRecipientResponseSchema(delivery_id=delivery.id)
@@ -159,6 +166,7 @@ async def delete_delivery_to_recipient(
 
     if not delivery:
         raise HTTPException(status_code=404, detail="Событие не найдено")
+    await ParcelStatus.filter(document_id=delivery_id).delete()
     await recalculate_parcel_status(delivery.parcel.id)
     await delivery.delete()
     return

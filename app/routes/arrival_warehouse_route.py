@@ -129,10 +129,18 @@ async def edit_arrival_to_warehouse(
 
     if not arrival:
         raise HTTPException(status_code=404, detail="Событие не найдено")
-    await recalculate_parcel_status(arrival.parcel.id)
+
     await arrival.update_from_dict(data.model_dump(exclude_unset=True))
     await arrival.save()
-
+    await ParcelStatus.filter(document_id=arrival_id).delete()
+    await ParcelStatus.create(
+        parcel_id=arrival.parcel.id,
+        document_id=arrival.id,
+        status=ParcelStatusEnum.ON_WAREHOUSE,
+        date=arrival.date,
+        value=arrival.warehouse_id,
+    )
+    await recalculate_parcel_status(arrival.parcel.id)
     return ArrivalToWarehouseResponseSchema(arrival_id=arrival.id)
 
 
@@ -153,6 +161,7 @@ async def delete_arrival_to_warehouse(
 
     if not arrival:
         raise HTTPException(status_code=404, detail="Событие не найдено")
+    await ParcelStatus.filter(document_id=arrival_id).delete()
     await recalculate_parcel_status(arrival.parcel.id)
     await arrival.delete()
     return
