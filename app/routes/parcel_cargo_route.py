@@ -2,7 +2,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
-from tiacore_lib.utils.validate_helpers import validate_exists
 from tortoise.expressions import Q
 
 from app.database.models import Parcel, ParcelCargo
@@ -28,7 +27,9 @@ async def add_parcel_cargo(
     data: ParcelCargoCreateSchema,
     _: dict = Depends(require_permission_in_context("add_parcel_cargo")),
 ):
-    await validate_exists(Parcel, data.parcel_id, "Накладная")
+    parcel = await Parcel.get_or_none(id=data.parcel_id)
+    if not parcel:
+        raise HTTPException(status_code=400, detail="Накладная не найдена")
 
     volume = data.length * data.height * data.weight
     total_volume = volume * data.quantity
@@ -44,6 +45,11 @@ async def add_parcel_cargo(
     )
 
     cargo = await ParcelCargo.create(**create_data)
+    parcel.places_count += cargo.quantity
+    parcel.volume += cargo.total_volume
+    parcel.weight += cargo.total_weight
+    await parcel.save()
+
     return ParcelCargoResponseSchema(cargo_id=cargo.id)
 
 
@@ -57,10 +63,14 @@ async def edit_parcel_cargo(
     data: ParcelCargoEditSchema,
     _: dict = Depends(require_permission_in_context("edit_parcel_cargo")),
 ):
-    cargo = await ParcelCargo.filter(id=cargo_id).first()
+    cargo = await ParcelCargo.filter(id=cargo_id).prefetch_related("parcel").first()
 
     if not cargo:
         raise HTTPException(status_code=404, detail="Груз не найден")
+
+    parcel = await Parcel.get_or_none(id=cargo.parcel.id)
+    if not parcel:
+        raise HTTPException(status_code=400, detail="Накладная не найдена")
 
     update_data = data.model_dump(exclude_unset=True)
 
@@ -82,6 +92,15 @@ async def edit_parcel_cargo(
                 "total_weight": total_weight,
             }
         )
+        parcel.places_count -= cargo.quantity
+        parcel.volume -= cargo.total_volume
+        parcel.weight -= cargo.total_weight
+
+        parcel.places_count += quantity
+        parcel.volume += total_volume
+        parcel.weight += total_weight
+
+        await parcel.save()
 
     await cargo.update_from_dict(update_data)
     await cargo.save()
@@ -98,11 +117,17 @@ async def delete_parcel_cargo(
     cargo_id: UUID,
     _: dict = Depends(require_permission_in_context("delete_parcel_cargo")),
 ):
-    cargo = await ParcelCargo.filter(id=cargo_id).first()
+    cargo = await ParcelCargo.filter(id=cargo_id).prefetch_related("parcel").first()
 
     if not cargo:
         raise HTTPException(status_code=404, detail="Груз не найден")
-
+    parcel = await Parcel.get_or_none(id=cargo.parcel.id)
+    if not parcel:
+        raise HTTPException(status_code=400, detail="Накладная не найдена")
+    parcel.places_count -= cargo.quantity
+    parcel.volume -= cargo.total_volume
+    parcel.weight -= cargo.total_weight
+    await parcel.save()
     await cargo.delete()
     return
 

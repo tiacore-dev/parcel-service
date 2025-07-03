@@ -29,35 +29,41 @@ class Parcel(Model):
     # Отправитель
     sender_city = fields.UUIDField()
     sender_address = fields.CharField(max_length=255)
-    sender_warehouse = fields.UUIDField()
-    sender_personal_data = fields.UUIDField()
+    sender_warehouse = fields.UUIDField(null=True)
+    sender_personal_data = fields.UUIDField(null=True)
     sender_company = fields.CharField(max_length=255)
     sender_phone = fields.CharField(max_length=20)
-    sender_email = fields.CharField(max_length=100)
-    sender_telegram = fields.CharField(max_length=100)
-    sender_coordinates_latitude = fields.DecimalField(max_digits=9, decimal_places=6)
-    sender_coordinates_longitude = fields.DecimalField(max_digits=9, decimal_places=6)
+    sender_email = fields.CharField(max_length=100, null=True)
+    sender_telegram = fields.CharField(max_length=100, null=True)
+    sender_coordinates_latitude = fields.DecimalField(
+        max_digits=9, decimal_places=6, null=True
+    )
+    sender_coordinates_longitude = fields.DecimalField(
+        max_digits=9, decimal_places=6, null=True
+    )
     pickup_estimated_date = fields.DateField()
-    pickup_time_from = fields.DatetimeField()
-    pickup_time_to = fields.DatetimeField()
+    pickup_time_from = fields.TimeField()
+    pickup_time_to = fields.TimeField()
     sender_additional_info = fields.TextField(null=True)
 
     # Получатель
     recipient_city = fields.UUIDField()
     recipient_address = fields.CharField(max_length=255)
-    recipient_warehouse = fields.UUIDField()
-    recipient_personal_data = fields.UUIDField()
+    recipient_warehouse = fields.UUIDField(null=True)
+    recipient_personal_data = fields.UUIDField(null=True)
     recipient_company = fields.CharField(max_length=255)
     recipient_phone = fields.CharField(max_length=20)
-    recipient_email = fields.CharField(max_length=100)
-    recipient_telegram = fields.CharField(max_length=100)
-    recipient_coordinates_latitude = fields.DecimalField(max_digits=9, decimal_places=6)
+    recipient_email = fields.CharField(max_length=100, null=True)
+    recipient_telegram = fields.CharField(max_length=100, null=True)
+    recipient_coordinates_latitude = fields.DecimalField(
+        max_digits=9, decimal_places=6, null=True
+    )
     recipient_coordinates_longitude = fields.DecimalField(
-        max_digits=9, decimal_places=6
+        max_digits=9, decimal_places=6, null=True
     )
     delivery_estimated_date = fields.DateField()
-    delivery_time_from = fields.DatetimeField()
-    delivery_time_to = fields.DatetimeField()
+    delivery_time_from = fields.TimeField()
+    delivery_time_to = fields.TimeField()
     recipient_additional_info = fields.TextField(null=True)
 
     # Общая информация
@@ -77,7 +83,7 @@ class ParcelCargo(Model):
     length = fields.DecimalField(max_digits=10, decimal_places=2)
     height = fields.DecimalField(max_digits=10, decimal_places=2)
     volume = fields.DecimalField(max_digits=10, decimal_places=2)
-    quantity = fields.DecimalField(max_digits=10, decimal_places=2)
+    quantity = fields.IntField()
     cargo_type = fields.CharField(max_length=100)
     total_weight = fields.DecimalField(max_digits=10, decimal_places=2)
     total_volume = fields.DecimalField(max_digits=10, decimal_places=2)

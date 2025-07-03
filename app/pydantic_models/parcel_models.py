@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, time
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -14,40 +14,40 @@ class ParcelCreateSchema(BaseModel):
     # Отправитель
     sender_city: UUID
     sender_address: str = Field(..., max_length=255)
-    sender_warehouse: UUID
-    sender_personal_data: UUID
+    sender_warehouse: Optional[UUID] = Field(None)
+    sender_personal_data: Optional[UUID] = Field(None)
     sender_company: str = Field(..., max_length=255)
     sender_phone: str = Field(..., max_length=20)
-    sender_email: str = Field(..., max_length=100)
-    sender_telegram: str = Field(..., max_length=100)
-    sender_coordinates_latitude: Decimal
-    sender_coordinates_longitude: Decimal
+    sender_email: Optional[str] = Field(None, max_length=100)
+    sender_telegram: Optional[str] = Field(None, max_length=100)
+    sender_coordinates_latitude: Optional[Decimal] = Field(None)
+    sender_coordinates_longitude: Optional[Decimal] = Field(None)
     pickup_estimated_date: date
-    pickup_time_from: datetime
-    pickup_time_to: datetime
+    pickup_time_from: time
+    pickup_time_to: time
     sender_additional_info: Optional[str] = None
 
     # Получатель
     recipient_city: UUID
     recipient_address: str = Field(..., max_length=255)
-    recipient_warehouse: UUID
-    recipient_personal_data: UUID
+    recipient_warehouse: Optional[UUID] = Field(None)
+    recipient_personal_data: Optional[UUID] = Field(None)
     recipient_company: str = Field(..., max_length=255)
     recipient_phone: str = Field(..., max_length=20)
-    recipient_email: str = Field(..., max_length=100)
-    recipient_telegram: str = Field(..., max_length=100)
-    recipient_coordinates_latitude: Decimal
-    recipient_coordinates_longitude: Decimal
+    recipient_email: Optional[str] = Field(None, max_length=100)
+    recipient_telegram: Optional[str] = Field(None, max_length=100)
+    recipient_coordinates_latitude: Optional[Decimal] = Field(None)
+    recipient_coordinates_longitude: Optional[Decimal] = Field(None)
     delivery_estimated_date: date
-    delivery_time_from: datetime
-    delivery_time_to: datetime
+    delivery_time_from: time
+    delivery_time_to: time
     recipient_additional_info: Optional[str] = None
 
     # Общая информация
     note: Optional[str] = None
-    weight: Decimal
-    volume: Decimal
-    places_count: int
+    weight: Decimal = Field(Decimal(0.0))
+    volume: Decimal = Field(Decimal(0.0))
+    places_count: int = Field(0)
 
     class Config:
         from_attributes = True
@@ -68,8 +68,8 @@ class ParcelEditSchema(BaseModel):
     sender_coordinates_latitude: Optional[Decimal] = None
     sender_coordinates_longitude: Optional[Decimal] = None
     pickup_estimated_date: Optional[date] = None
-    pickup_time_from: Optional[datetime] = None
-    pickup_time_to: Optional[datetime] = None
+    pickup_time_from: Optional[time] = None
+    pickup_time_to: Optional[time] = None
     sender_additional_info: Optional[str] = None
 
     recipient_city: Optional[UUID] = None
@@ -83,8 +83,8 @@ class ParcelEditSchema(BaseModel):
     recipient_coordinates_latitude: Optional[Decimal] = None
     recipient_coordinates_longitude: Optional[Decimal] = None
     delivery_estimated_date: Optional[date] = None
-    delivery_time_from: Optional[datetime] = None
-    delivery_time_to: Optional[datetime] = None
+    delivery_time_from: Optional[time] = None
+    delivery_time_to: Optional[time] = None
     recipient_additional_info: Optional[str] = None
 
     note: Optional[str] = None
@@ -111,33 +111,33 @@ class ParcelSchema(BaseModel):
     # Отправитель
     sender_city: UUID
     sender_address: str
-    sender_warehouse: UUID
-    sender_personal_data: UUID
+    sender_warehouse: Optional[UUID] = Field(None)
+    sender_personal_data: Optional[UUID] = Field(None)
     sender_company: str
     sender_phone: str
-    sender_email: str
-    sender_telegram: str
-    sender_coordinates_latitude: Decimal
-    sender_coordinates_longitude: Decimal
+    sender_email: Optional[str] = Field(None, max_length=100)
+    sender_telegram: Optional[str] = Field(None, max_length=100)
+    sender_coordinates_latitude: Optional[Decimal] = None
+    sender_coordinates_longitude: Optional[Decimal] = None
     pickup_estimated_date: date
-    pickup_time_from: datetime
-    pickup_time_to: datetime
+    pickup_time_from: time
+    pickup_time_to: time
     sender_additional_info: Optional[str] = None
 
     # Получатель
     recipient_city: UUID
     recipient_address: str
-    recipient_warehouse: UUID
-    recipient_personal_data: UUID
+    recipient_warehouse: Optional[UUID] = Field(None)
+    recipient_personal_data: Optional[UUID] = Field(None)
     recipient_company: str
     recipient_phone: str
-    recipient_email: str
-    recipient_telegram: str
-    recipient_coordinates_latitude: Decimal
-    recipient_coordinates_longitude: Decimal
+    recipient_email: Optional[str] = Field(None, max_length=100)
+    recipient_telegram: Optional[str] = Field(None, max_length=100)
+    recipient_coordinates_latitude: Optional[Decimal] = None
+    recipient_coordinates_longitude: Optional[Decimal] = None
     delivery_estimated_date: date
-    delivery_time_from: datetime
-    delivery_time_to: datetime
+    delivery_time_from: time
+    delivery_time_to: time
     recipient_additional_info: Optional[str] = None
 
     # Общая информация
