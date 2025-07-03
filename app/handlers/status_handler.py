@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi_cache import FastAPICache
 
-from app.database.models import ParcelStatusEnum
+from app.database.models import ParcelStatus, ParcelStatusEnum
 
 
 def get_parcel_status_cache_key(parcel_id: UUID) -> str:
@@ -48,3 +48,14 @@ async def get_cached_parcel_status_data(parcel_id: UUID) -> dict:
         return json.loads(cached)
     else:
         return {"error": True}
+
+
+async def recalculate_parcel_status(parcel_id: UUID):
+    await invalidate_parcel_status_cache(parcel_id)
+    latest_status = (
+        await ParcelStatus.filter(parcel_id=parcel_id).order_by("-date").first()
+    )
+
+    if not latest_status:
+        return {"error": "No statuses found for this parcel"}
+    await save_parcel_status_to_cache(**latest_status.to_cache_dict())

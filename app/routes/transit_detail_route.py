@@ -12,10 +12,7 @@ from app.database.models import (
     Transit,
     TransitDetails,
 )
-from app.handlers.status_handler import (
-    invalidate_parcel_status_cache,
-    save_parcel_status_to_cache,
-)
+from app.handlers.status_handler import recalculate_parcel_status
 from app.pydantic_models.transit_details_models import (
     TransitDetailsCreateSchema,
     TransitDetailsEditSchema,
@@ -44,14 +41,13 @@ async def add_transit_details(
     await validate_exists(Parcel, data.parcel_id, "Накладная")
 
     detail = await TransitDetails.create(**data.model_dump())
-    status = await ParcelStatus.create(
+    await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=detail.id,
         status=ParcelStatusEnum.IN_TRANSIT,
         date=transit.date,
     )
-    await invalidate_parcel_status_cache(data.parcel_id)
-    await save_parcel_status_to_cache(**status.to_cache_dict())
+    await recalculate_parcel_status(data.parcel_id)
     return TransitDetailsResponseSchema(details_id=detail.id)
 
 
@@ -123,14 +119,16 @@ async def edit_transit_details(
     data: TransitDetailsEditSchema,
     _: dict = Depends(require_permission_in_context("edit_transit_details")),
 ):
-    detail = await TransitDetails.filter(id=details_id).first()
+    detail = (
+        await TransitDetails.filter(id=details_id).prefetch_related("parcel").first()
+    )
 
     if not detail:
         raise HTTPException(status_code=404, detail="Деталь транзита не найдена")
 
     await detail.update_from_dict(data.model_dump(exclude_unset=True))
     await detail.save()
-
+    await recalculate_parcel_status(detail.parcel.id)
     return TransitDetailsResponseSchema(details_id=detail.id)
 
 
@@ -143,10 +141,12 @@ async def delete_transit_details(
     details_id: UUID,
     _: dict = Depends(require_permission_in_context("delete_transit_details")),
 ):
-    detail = await TransitDetails.filter(id=details_id).first()
+    detail = (
+        await TransitDetails.filter(id=details_id).prefetch_related("parcel").first()
+    )
 
     if not detail:
         raise HTTPException(status_code=404, detail="Деталь транзита не найдена")
-
+    await recalculate_parcel_status(detail.parcel.id)
     await detail.delete()
     return

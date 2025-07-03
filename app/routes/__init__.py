@@ -15,6 +15,7 @@ from .parcel_route import parcel_router
 from .parcel_status_route import parcel_status_router
 from .pickup_route import pickup_router
 from .return_route import return_router
+from .statuses_route import status_router
 from .transit_detail_route import transit_details_router
 from .transit_route import transit_router
 
@@ -37,6 +38,7 @@ def register_routes(app: FastAPI):
     app.include_router(
         parcel_status_router, prefix="/api/parcel-status", tags=["ParcelStatus"]
     )
+    app.include_router(status_router, prefix="/api/statuses", tags=["StatusEnum"])
     app.include_router(
         pickup_router,
         prefix="/api/pickup-from-sender",

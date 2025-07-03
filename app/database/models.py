@@ -131,7 +131,7 @@ class ParcelStatus(Model):
 
 class PickupFromSender(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
-    warehouse_id = fields.UUIDField()
+    warehouse_id = fields.UUIDField(null=True)
     employee_id = fields.UUIDField()
     date = fields.DatetimeField()
     parcel = fields.ForeignKeyField("models.Parcel", related_name="pickup_events")

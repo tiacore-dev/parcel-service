@@ -6,10 +6,7 @@ from tiacore_lib.utils.validate_helpers import validate_exists
 from tortoise.expressions import Q
 
 from app.database.models import IssueToEmployee, Parcel, ParcelStatus, ParcelStatusEnum
-from app.handlers.status_handler import (
-    invalidate_parcel_status_cache,
-    save_parcel_status_to_cache,
-)
+from app.handlers.status_handler import recalculate_parcel_status
 from app.pydantic_models.issue_to_employee_models import (
     IssueToEmployeeCreateSchema,
     IssueToEmployeeEditSchema,
@@ -34,15 +31,14 @@ async def add_issue_to_employee(
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
     issue = await IssueToEmployee.create(**data.model_dump())
-    status = await ParcelStatus.create(
+    await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=issue.id,
         status=ParcelStatusEnum.WITH_EMPLOYEE,
         date=data.date,
         value=data.employee_id,
     )
-    await invalidate_parcel_status_cache(data.parcel_id)
-    await save_parcel_status_to_cache(**status.to_cache_dict())
+    await recalculate_parcel_status(data.parcel_id)
     return IssueToEmployeeResponseSchema(issue_id=issue.id)
 
 
@@ -120,13 +116,14 @@ async def edit_issue_to_employee(
     data: IssueToEmployeeEditSchema,
     _: dict = Depends(require_permission_in_context("edit_issue_to_employee")),
 ):
-    issue = await IssueToEmployee.filter(id=issue_id).first()
+    issue = await IssueToEmployee.filter(id=issue_id).prefetch_related("parcel").first()
 
     if not issue:
         raise HTTPException(status_code=404, detail="Событие не найдено")
 
     await issue.update_from_dict(data.model_dump(exclude_unset=True))
     await issue.save()
+    await recalculate_parcel_status(issue.parcel.id)
 
     return IssueToEmployeeResponseSchema(issue_id=issue.id)
 
@@ -140,10 +137,11 @@ async def delete_issue_to_employee(
     issue_id: UUID,
     _: dict = Depends(require_permission_in_context("delete_issue_to_employee")),
 ):
-    issue = await IssueToEmployee.filter(id=issue_id).first()
+    issue = await IssueToEmployee.filter(id=issue_id).prefetch_related("parcel").first()
 
     if not issue:
         raise HTTPException(status_code=404, detail="Событие не найдено")
-
+    await recalculate_parcel_status(issue.parcel.id)
     await issue.delete()
+
     return

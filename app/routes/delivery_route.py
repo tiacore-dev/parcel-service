@@ -11,10 +11,7 @@ from app.database.models import (
     ParcelStatus,
     ParcelStatusEnum,
 )
-from app.handlers.status_handler import (
-    invalidate_parcel_status_cache,
-    save_parcel_status_to_cache,
-)
+from app.handlers.status_handler import recalculate_parcel_status
 from app.pydantic_models.delivery_models import (
     DeliveryToRecipientCreateSchema,
     DeliveryToRecipientEditSchema,
@@ -39,14 +36,13 @@ async def add_delivery_to_recipient(
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
     delivery = await DeliveryToRecipient.create(**data.model_dump())
-    status = await ParcelStatus.create(
+    await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=delivery.id,
         status=ParcelStatusEnum.DELIVERED,
         date=data.date,
     )
-    await invalidate_parcel_status_cache(data.parcel_id)
-    await save_parcel_status_to_cache(**status.to_cache_dict())
+    await recalculate_parcel_status(data.parcel_id)
     return DeliveryToRecipientResponseSchema(delivery_id=delivery.id)
 
 
@@ -130,13 +126,18 @@ async def edit_delivery_to_recipient(
     data: DeliveryToRecipientEditSchema,
     _: dict = Depends(require_permission_in_context("edit_delivery_to_recipient")),
 ):
-    delivery = await DeliveryToRecipient.filter(id=delivery_id).first()
+    delivery = (
+        await DeliveryToRecipient.filter(id=delivery_id)
+        .prefetch_related("parcel")
+        .first()
+    )
 
     if not delivery:
         raise HTTPException(status_code=404, detail="Событие не найдено")
 
     await delivery.update_from_dict(data.model_dump(exclude_unset=True))
     await delivery.save()
+    await recalculate_parcel_status(delivery.parcel.id)
 
     return DeliveryToRecipientResponseSchema(delivery_id=delivery.id)
 
@@ -150,10 +151,14 @@ async def delete_delivery_to_recipient(
     delivery_id: UUID,
     _: dict = Depends(require_permission_in_context("delete_delivery_to_recipient")),
 ):
-    delivery = await DeliveryToRecipient.filter(id=delivery_id).first()
+    delivery = (
+        await DeliveryToRecipient.filter(id=delivery_id)
+        .prefetch_related("parcel")
+        .first()
+    )
 
     if not delivery:
         raise HTTPException(status_code=404, detail="Событие не найдено")
-
+    await recalculate_parcel_status(delivery.parcel.id)
     await delivery.delete()
     return

@@ -11,10 +11,7 @@ from app.database.models import (
     ParcelStatus,
     ParcelStatusEnum,
 )
-from app.handlers.status_handler import (
-    invalidate_parcel_status_cache,
-    save_parcel_status_to_cache,
-)
+from app.handlers.status_handler import recalculate_parcel_status
 from app.pydantic_models.arrival_warehouse_models import (
     ArrivalToWarehouseCreateSchema,
     ArrivalToWarehouseEditSchema,
@@ -39,15 +36,14 @@ async def add_arrival_to_warehouse(
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
     arrival = await ArrivalToWarehouse.create(**data.model_dump())
-    status = await ParcelStatus.create(
+    await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=arrival.id,
         status=ParcelStatusEnum.ON_WAREHOUSE,
         date=data.date,
         value=data.warehouse_id,
     )
-    await invalidate_parcel_status_cache(data.parcel_id)
-    await save_parcel_status_to_cache(**status.to_cache_dict())
+    await recalculate_parcel_status(data.parcel_id)
     return ArrivalToWarehouseResponseSchema(arrival_id=arrival.id)
 
 
@@ -125,11 +121,15 @@ async def edit_arrival_to_warehouse(
     data: ArrivalToWarehouseEditSchema,
     _: dict = Depends(require_permission_in_context("edit_arrival_to_warehouse")),
 ):
-    arrival = await ArrivalToWarehouse.filter(id=arrival_id).first()
+    arrival = (
+        await ArrivalToWarehouse.filter(id=arrival_id)
+        .prefetch_related("parcel")
+        .first()
+    )
 
     if not arrival:
         raise HTTPException(status_code=404, detail="Событие не найдено")
-
+    await recalculate_parcel_status(arrival.parcel.id)
     await arrival.update_from_dict(data.model_dump(exclude_unset=True))
     await arrival.save()
 
@@ -145,10 +145,14 @@ async def delete_arrival_to_warehouse(
     arrival_id: UUID,
     _: dict = Depends(require_permission_in_context("delete_arrival_to_warehouse")),
 ):
-    arrival = await ArrivalToWarehouse.filter(id=arrival_id).first()
+    arrival = (
+        await ArrivalToWarehouse.filter(id=arrival_id)
+        .prefetch_related("parcel")
+        .first()
+    )
 
     if not arrival:
         raise HTTPException(status_code=404, detail="Событие не найдено")
-
+    await recalculate_parcel_status(arrival.parcel.id)
     await arrival.delete()
     return

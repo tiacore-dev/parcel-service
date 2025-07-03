@@ -6,10 +6,7 @@ from tiacore_lib.utils.validate_helpers import validate_exists
 from tortoise.expressions import Q
 
 from app.database.models import Parcel, ParcelStatus, ParcelStatusEnum, ReturnToSender
-from app.handlers.status_handler import (
-    invalidate_parcel_status_cache,
-    save_parcel_status_to_cache,
-)
+from app.handlers.status_handler import recalculate_parcel_status
 from app.pydantic_models.return_models import (
     ReturnToSenderCreateSchema,
     ReturnToSenderEditSchema,
@@ -34,14 +31,13 @@ async def add_return_to_sender(
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
     return_obj = await ReturnToSender.create(**data.model_dump())
-    status = await ParcelStatus.create(
+    await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=return_obj.id,
         status=ParcelStatusEnum.RETURNED,
         date=data.date,
     )
-    await invalidate_parcel_status_cache(data.parcel_id)
-    await save_parcel_status_to_cache(**status.to_cache_dict())
+    await recalculate_parcel_status(data.parcel_id)
     return ReturnToSenderResponseSchema(return_id=return_obj.id)
 
 
@@ -125,13 +121,16 @@ async def edit_return_to_sender(
     data: ReturnToSenderEditSchema,
     _: dict = Depends(require_permission_in_context("edit_return_to_sender")),
 ):
-    return_obj = await ReturnToSender.filter(id=return_id).first()
+    return_obj = (
+        await ReturnToSender.filter(id=return_id).prefetch_related("parcel").first()
+    )
 
     if not return_obj:
         raise HTTPException(status_code=404, detail="Событие не найдено")
 
     await return_obj.update_from_dict(data.model_dump(exclude_unset=True))
     await return_obj.save()
+    await recalculate_parcel_status(return_obj.parcel.id)
 
     return ReturnToSenderResponseSchema(return_id=return_obj.id)
 
@@ -145,10 +144,12 @@ async def delete_return_to_sender(
     return_id: UUID,
     _: dict = Depends(require_permission_in_context("delete_return_to_sender")),
 ):
-    return_obj = await ReturnToSender.filter(id=return_id).first()
+    return_obj = (
+        await ReturnToSender.filter(id=return_id).prefetch_related("parcel").first()
+    )
 
     if not return_obj:
         raise HTTPException(status_code=404, detail="Событие не найдено")
-
+    await recalculate_parcel_status(return_obj.parcel.id)
     await return_obj.delete()
     return

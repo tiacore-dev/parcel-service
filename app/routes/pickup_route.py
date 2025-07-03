@@ -6,10 +6,7 @@ from tiacore_lib.utils.validate_helpers import validate_exists
 from tortoise.expressions import Q
 
 from app.database.models import Parcel, ParcelStatus, ParcelStatusEnum, PickupFromSender
-from app.handlers.status_handler import (
-    invalidate_parcel_status_cache,
-    save_parcel_status_to_cache,
-)
+from app.handlers.status_handler import recalculate_parcel_status
 from app.pydantic_models.pickup_models import (
     PickupFromSenderCreateSchema,
     PickupFromSenderEditSchema,
@@ -34,15 +31,23 @@ async def add_pickup_from_sender(
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
     pickup = await PickupFromSender.create(**data.model_dump())
-    status = await ParcelStatus.create(
-        parcel_id=data.parcel_id,
-        document_id=pickup.id,
-        status=ParcelStatusEnum.WITH_EMPLOYEE,
-        date=data.date,
-        value=data.employee_id,
-    )
-    await invalidate_parcel_status_cache(data.parcel_id)
-    await save_parcel_status_to_cache(**status.to_cache_dict())
+    if data.warehouse_id:
+        await ParcelStatus.create(
+            parcel_id=data.parcel_id,
+            document_id=pickup.id,
+            status=ParcelStatusEnum.ON_WAREHOUSE,
+            date=data.date,
+            value=data.warehouse_id,
+        )
+    else:
+        await ParcelStatus.create(
+            parcel_id=data.parcel_id,
+            document_id=pickup.id,
+            status=ParcelStatusEnum.WITH_EMPLOYEE,
+            date=data.date,
+            value=data.employee_id,
+        )
+    await recalculate_parcel_status(data.parcel_id)
     return PickupFromSenderResponseSchema(pickup_id=pickup.id)
 
 
@@ -126,13 +131,16 @@ async def edit_pickup_from_sender(
     data: PickupFromSenderEditSchema,
     _: dict = Depends(require_permission_in_context("edit_pickup_from_sender")),
 ):
-    pickup = await PickupFromSender.filter(id=pickup_id).first()
+    pickup = (
+        await PickupFromSender.filter(id=pickup_id).prefetch_related("parcel").first()
+    )
 
     if not pickup:
         raise HTTPException(status_code=404, detail="Событие не найдено")
 
     await pickup.update_from_dict(data.model_dump(exclude_unset=True))
     await pickup.save()
+    await recalculate_parcel_status(pickup.parcel.id)
 
     return PickupFromSenderResponseSchema(pickup_id=pickup.id)
 
@@ -146,10 +154,12 @@ async def delete_pickup_from_sender(
     pickup_id: UUID,
     _: dict = Depends(require_permission_in_context("delete_pickup_from_sender")),
 ):
-    pickup = await PickupFromSender.filter(id=pickup_id).first()
+    pickup = (
+        await PickupFromSender.filter(id=pickup_id).prefetch_related("parcel").first()
+    )
 
     if not pickup:
         raise HTTPException(status_code=404, detail="Событие не найдено")
-
+    await recalculate_parcel_status(pickup.parcel.id)
     await pickup.delete()
     return

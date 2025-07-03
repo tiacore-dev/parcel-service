@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 
 class PickupFromSenderCreateSchema(BaseModel):
-    warehouse_id: UUID
+    warehouse_id: Optional[UUID] = Field(None)
     employee_id: UUID
     date: datetime
     parcel_id: UUID
@@ -37,7 +37,7 @@ class PickupFromSenderResponseSchema(BaseModel):
 
 class PickupFromSenderSchema(BaseModel):
     id: UUID = Field(..., alias="pickup_id")
-    warehouse_id: UUID
+    warehouse_id: Optional[UUID] = Field(None)
     employee_id: UUID
     date: datetime
     parcel_id: UUID
