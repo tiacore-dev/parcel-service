@@ -3,12 +3,14 @@ from datetime import date, time
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
+from zoneinfo import available_timezones
 
 from fastapi import Query
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.database.models import ParcelStatusEnum
 
+IANA_TIMEZONES = available_timezones()
 PHONE_REGEX = re.compile(r"^\+7\d{10}$")
 TELEGRAM_REGEX = re.compile(r"^@[\w\d_]{5,32}$")
 
@@ -17,6 +19,7 @@ class ParcelCreateSchema(BaseModel):
     name: str = Field(..., alias="parcel_name")
     # Отправитель
     sender_city: UUID
+    sender_timezone: Optional[str] = Field(None, max_length=50)
     sender_address: str = Field(..., max_length=255)
     sender_warehouse: Optional[UUID] = Field(None)
     sender_personal_data: Optional[UUID] = Field(None)
@@ -33,6 +36,7 @@ class ParcelCreateSchema(BaseModel):
 
     # Получатель
     recipient_city: UUID
+    recipient_timezone: Optional[str] = Field(None, max_length=50)
     recipient_address: str = Field(..., max_length=255)
     recipient_warehouse: Optional[UUID] = Field(None)
     recipient_personal_data: Optional[UUID] = Field(None)
@@ -69,6 +73,28 @@ class ParcelCreateSchema(BaseModel):
             )
         return v
 
+    @field_validator("sender_timezone", "recipient_timezone")
+    def validate_timezone(cls, v):
+        if v not in IANA_TIMEZONES:
+            raise ValueError(f"Некорректная таймзона: {v}")
+        return v
+
+    @field_validator("pickup_time_to")
+    def validate_pickup_time_range(cls, to_val, info):
+        data = info.data
+        from_val = data.get("pickup_time_from")
+        if from_val and to_val <= from_val:
+            raise ValueError("pickup_time_to должно быть позже pickup_time_from")
+        return to_val
+
+    @field_validator("delivery_time_to")
+    def validate_delivery_time_range(cls, to_val, info):
+        data = info.data
+        from_val = data.get("delivery_time_from")
+        if from_val and to_val <= from_val:
+            raise ValueError("delivery_time_to должно быть позже delivery_time_from")
+        return to_val
+
     class Config:
         from_attributes = True
         arbitrary_types_allowed = True
@@ -78,6 +104,7 @@ class ParcelEditSchema(BaseModel):
     name: Optional[str] = Field(None, alias="parcel_name")
     # Всё опционально для PATCH/UPDATE
     sender_city: Optional[UUID] = None
+    sender_timezone: Optional[str] = Field(None, max_length=50)
     sender_address: Optional[str] = Field(None, max_length=255)
     sender_warehouse: Optional[UUID] = None
     sender_personal_data: Optional[UUID] = None
@@ -93,6 +120,7 @@ class ParcelEditSchema(BaseModel):
     sender_additional_info: Optional[str] = None
 
     recipient_city: Optional[UUID] = None
+    recipient_timezone: Optional[str] = Field(None, max_length=50)
     recipient_address: Optional[str] = Field(None, max_length=255)
     recipient_warehouse: Optional[UUID] = None
     recipient_personal_data: Optional[UUID] = None
@@ -128,6 +156,28 @@ class ParcelEditSchema(BaseModel):
             )
         return v
 
+    @field_validator("sender_timezone", "recipient_timezone")
+    def validate_timezone(cls, v):
+        if v not in IANA_TIMEZONES:
+            raise ValueError(f"Некорректная таймзона: {v}")
+        return v
+
+    @field_validator("pickup_time_to")
+    def validate_pickup_time_range(cls, to_val, info):
+        data = info.data
+        from_val = data.get("pickup_time_from")
+        if from_val and to_val <= from_val:
+            raise ValueError("pickup_time_to должно быть позже pickup_time_from")
+        return to_val
+
+    @field_validator("delivery_time_to")
+    def validate_delivery_time_range(cls, to_val, info):
+        data = info.data
+        from_val = data.get("delivery_time_from")
+        if from_val and to_val <= from_val:
+            raise ValueError("delivery_time_to должно быть позже delivery_time_from")
+        return to_val
+
     class Config:
         from_attributes = True
         arbitrary_types_allowed = True
@@ -146,6 +196,7 @@ class ParcelSchema(BaseModel):
 
     # Отправитель
     sender_city: UUID
+    sender_timezone: Optional[str] = Field(None, max_length=50)
     sender_address: str
     sender_warehouse: Optional[UUID] = Field(None)
     sender_personal_data: Optional[UUID] = Field(None)
@@ -162,6 +213,7 @@ class ParcelSchema(BaseModel):
 
     # Получатель
     recipient_city: UUID
+    recipient_timezone: Optional[str] = Field(None, max_length=50)
     recipient_address: str
     recipient_warehouse: Optional[UUID] = Field(None)
     recipient_personal_data: Optional[UUID] = Field(None)

@@ -28,6 +28,7 @@ class Parcel(Model):
 
     # Отправитель
     sender_city = fields.UUIDField()
+    sender_timezone = fields.CharField(max_length=50, null=True)
     sender_address = fields.CharField(max_length=255)
     sender_warehouse = fields.UUIDField(null=True)
     sender_personal_data = fields.UUIDField(null=True)
@@ -48,6 +49,7 @@ class Parcel(Model):
 
     # Получатель
     recipient_city = fields.UUIDField()
+    recipient_timezone = fields.CharField(max_length=50, null=True)
     recipient_address = fields.CharField(max_length=255)
     recipient_warehouse = fields.UUIDField(null=True)
     recipient_personal_data = fields.UUIDField(null=True)
