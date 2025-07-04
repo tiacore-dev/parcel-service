@@ -82,6 +82,7 @@ class ParcelCargo(Model):
     weight = fields.DecimalField(max_digits=10, decimal_places=2)
     length = fields.DecimalField(max_digits=10, decimal_places=2)
     height = fields.DecimalField(max_digits=10, decimal_places=2)
+    width = fields.DecimalField(max_digits=10, decimal_places=2)
     volume = fields.DecimalField(max_digits=10, decimal_places=2)
     quantity = fields.IntField()
     cargo_type = fields.CharField(max_length=100)

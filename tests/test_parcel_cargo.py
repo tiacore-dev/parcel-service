@@ -14,6 +14,7 @@ async def test_add_parcel_cargo(
         "parcel_id": str(seed_parcel.id),
         "weight": "10.5",
         "length": "2.5",
+        "width": "3.5",
         "height": "1.8",
         "quantity": "2",
         "cargo_type": "Коробка",

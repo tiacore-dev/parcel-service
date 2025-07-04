@@ -11,6 +11,7 @@ class ParcelCargoCreateSchema(BaseModel):
     weight: Decimal = Field(..., ge=0.01)
     length: Decimal = Field(..., ge=0.01)
     height: Decimal = Field(..., ge=0.01)
+    width: Decimal = Field(..., ge=0.01)
     quantity: int = Field(..., gt=0)
     cargo_type: str = Field(..., max_length=100)
     comment: Optional[str] = None
@@ -23,6 +24,7 @@ class ParcelCargoEditSchema(BaseModel):
     weight: Optional[Decimal] = Field(None, ge=0.01)
     length: Optional[Decimal] = Field(None, ge=0.01)
     height: Optional[Decimal] = Field(None, ge=0.01)
+    width: Optional[Decimal] = Field(None, ge=0.01)
     quantity: Optional[int] = Field(None, gt=0)
     cargo_type: Optional[str] = Field(None, max_length=100)
     comment: Optional[str] = None
@@ -44,6 +46,7 @@ class ParcelCargoSchema(BaseModel):
     weight: Decimal
     length: Decimal
     height: Decimal
+    width: Decimal
     volume: Decimal
     quantity: int
     cargo_type: str

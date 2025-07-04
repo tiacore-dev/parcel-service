@@ -12,6 +12,7 @@ async def seed_parcel_cargo(seed_parcel: Parcel):
         weight=Decimal("10.5"),
         length=Decimal("2.5"),
         height=Decimal("1.8"),
+        width=Decimal("2.0"),
         volume=Decimal("4.5"),
         quantity=Decimal("2"),
         cargo_type="Паллет",

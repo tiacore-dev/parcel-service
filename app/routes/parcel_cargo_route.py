@@ -31,7 +31,7 @@ async def add_parcel_cargo(
     if not parcel:
         raise HTTPException(status_code=400, detail="Накладная не найдена")
 
-    volume = data.length * data.height * data.weight
+    volume = data.length * data.height * data.width
     total_volume = volume * data.quantity
     total_weight = data.weight * data.quantity
 
@@ -78,10 +78,12 @@ async def edit_parcel_cargo(
     if {"length", "height", "weight", "quantity"} & update_data.keys():
         length = update_data.get("length", cargo.length)
         height = update_data.get("height", cargo.height)
+        width = update_data.get("width", cargo.weight)
         weight = update_data.get("weight", cargo.weight)
+
         quantity = update_data.get("quantity", cargo.quantity)
 
-        volume = length * height * weight
+        volume = length * height * width
         total_volume = volume * quantity
         total_weight = weight * quantity
 
