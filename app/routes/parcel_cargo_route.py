@@ -16,6 +16,8 @@ from app.pydantic_models.parcel_cargo_models import (
 
 parcel_cargo_router = APIRouter()
 
+MILLION = 1000000000
+
 
 @parcel_cargo_router.post(
     "/add",
@@ -31,7 +33,7 @@ async def add_parcel_cargo(
     if not parcel:
         raise HTTPException(status_code=400, detail="Накладная не найдена")
 
-    volume = data.length * data.height * data.width
+    volume = (data.length * data.height * data.width) / MILLION
     total_volume = volume * data.quantity
     total_weight = data.weight * data.quantity
 
@@ -83,7 +85,7 @@ async def edit_parcel_cargo(
 
         quantity = update_data.get("quantity", cargo.quantity)
 
-        volume = length * height * width
+        volume = (length * height * width) / MILLION
         total_volume = volume * quantity
         total_weight = weight * quantity
 

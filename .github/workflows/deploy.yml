@@ -198,7 +198,7 @@ jobs:
 
           if [ "$DEPLOY_STATUS" != "success" ]; then
             STATUS="🛑 *Ошибка деплоя*"
-            EXTRA_LINK="\n\n[🔍 Открыть GitHub Actions]($RUN_URL)"
+            EXTRA_LINK="[🔍 Открыть GitHub Actions]($RUN_URL)"
           else
             STATUS="✅ Деплой *успешен*"
             EXTRA_LINK=""
