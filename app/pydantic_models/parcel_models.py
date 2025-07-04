@@ -1,12 +1,16 @@
+import re
 from datetime import date, time
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
 
 from fastapi import Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.database.models import ParcelStatusEnum
+
+PHONE_REGEX = re.compile(r"^\+7\d{10}$")
+TELEGRAM_REGEX = re.compile(r"^@[\w\d_]{5,32}$")
 
 
 class ParcelCreateSchema(BaseModel):
@@ -18,7 +22,7 @@ class ParcelCreateSchema(BaseModel):
     sender_personal_data: Optional[UUID] = Field(None)
     sender_company: str = Field(..., max_length=255)
     sender_phone: str = Field(..., max_length=20)
-    sender_email: Optional[str] = Field(None, max_length=100)
+    sender_email: Optional[EmailStr] = Field(None, max_length=100)
     sender_telegram: Optional[str] = Field(None, max_length=100)
     sender_coordinates_latitude: Optional[Decimal] = Field(None)
     sender_coordinates_longitude: Optional[Decimal] = Field(None)
@@ -34,7 +38,7 @@ class ParcelCreateSchema(BaseModel):
     recipient_personal_data: Optional[UUID] = Field(None)
     recipient_company: str = Field(..., max_length=255)
     recipient_phone: str = Field(..., max_length=20)
-    recipient_email: Optional[str] = Field(None, max_length=100)
+    recipient_email: Optional[EmailStr] = Field(None, max_length=100)
     recipient_telegram: Optional[str] = Field(None, max_length=100)
     recipient_coordinates_latitude: Optional[Decimal] = Field(None)
     recipient_coordinates_longitude: Optional[Decimal] = Field(None)
@@ -48,6 +52,22 @@ class ParcelCreateSchema(BaseModel):
     weight: Decimal = Field(Decimal(0.0))
     volume: Decimal = Field(Decimal(0.0))
     places_count: int = Field(0)
+
+    # Кастомная валидация для телефона
+    @field_validator("sender_phone", "recipient_phone")
+    def validate_phone(cls, v):
+        if not PHONE_REGEX.match(v):
+            raise ValueError("Телефон должен быть в формате +79999999999")
+        return v
+
+    # Кастомная валидация для Telegram
+    @field_validator("sender_telegram", "recipient_telegram")
+    def validate_telegram(cls, v):
+        if v is not None and not TELEGRAM_REGEX.match(v):
+            raise ValueError(
+                "Телеграм должен быть в формате @username (латиница, цифры, _)"
+            )
+        return v
 
     class Config:
         from_attributes = True
@@ -63,7 +83,7 @@ class ParcelEditSchema(BaseModel):
     sender_personal_data: Optional[UUID] = None
     sender_company: Optional[str] = Field(None, max_length=255)
     sender_phone: Optional[str] = Field(None, max_length=20)
-    sender_email: Optional[str] = Field(None, max_length=100)
+    sender_email: Optional[EmailStr] = Field(None, max_length=100)
     sender_telegram: Optional[str] = Field(None, max_length=100)
     sender_coordinates_latitude: Optional[Decimal] = None
     sender_coordinates_longitude: Optional[Decimal] = None
@@ -78,7 +98,7 @@ class ParcelEditSchema(BaseModel):
     recipient_personal_data: Optional[UUID] = None
     recipient_company: Optional[str] = Field(None, max_length=255)
     recipient_phone: Optional[str] = Field(None, max_length=20)
-    recipient_email: Optional[str] = Field(None, max_length=100)
+    recipient_email: Optional[EmailStr] = Field(None, max_length=100)
     recipient_telegram: Optional[str] = Field(None, max_length=100)
     recipient_coordinates_latitude: Optional[Decimal] = None
     recipient_coordinates_longitude: Optional[Decimal] = None
@@ -91,6 +111,22 @@ class ParcelEditSchema(BaseModel):
     weight: Optional[Decimal] = None
     volume: Optional[Decimal] = None
     places_count: Optional[int] = None
+
+    # Кастомная валидация для телефона
+    @field_validator("sender_phone", "recipient_phone")
+    def validate_phone(cls, v):
+        if not PHONE_REGEX.match(v):
+            raise ValueError("Телефон должен быть в формате +79999999999")
+        return v
+
+    # Кастомная валидация для Telegram
+    @field_validator("sender_telegram", "recipient_telegram")
+    def validate_telegram(cls, v):
+        if v is not None and not TELEGRAM_REGEX.match(v):
+            raise ValueError(
+                "Телеграм должен быть в формате @username (латиница, цифры, _)"
+            )
+        return v
 
     class Config:
         from_attributes = True
@@ -115,7 +151,7 @@ class ParcelSchema(BaseModel):
     sender_personal_data: Optional[UUID] = Field(None)
     sender_company: str
     sender_phone: str
-    sender_email: Optional[str] = Field(None, max_length=100)
+    sender_email: Optional[EmailStr] = Field(None, max_length=100)
     sender_telegram: Optional[str] = Field(None, max_length=100)
     sender_coordinates_latitude: Optional[Decimal] = None
     sender_coordinates_longitude: Optional[Decimal] = None
@@ -131,7 +167,7 @@ class ParcelSchema(BaseModel):
     recipient_personal_data: Optional[UUID] = Field(None)
     recipient_company: str
     recipient_phone: str
-    recipient_email: Optional[str] = Field(None, max_length=100)
+    recipient_email: Optional[EmailStr] = Field(None, max_length=100)
     recipient_telegram: Optional[str] = Field(None, max_length=100)
     recipient_coordinates_latitude: Optional[Decimal] = None
     recipient_coordinates_longitude: Optional[Decimal] = None
