@@ -25,7 +25,7 @@ class ParcelStatusEnum(str, Enum):
 class Parcel(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
     name = fields.CharField(max_length=255, unique=True)
-
+    company_id = fields.UUIDField()
     # Отправитель
     sender_city = fields.UUIDField()
     sender_timezone = fields.CharField(max_length=50, null=True)

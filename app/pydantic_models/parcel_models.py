@@ -17,6 +17,7 @@ TELEGRAM_REGEX = re.compile(r"^@[\w\d_]{5,32}$")
 
 class ParcelCreateSchema(BaseModel):
     name: str = Field(..., alias="parcel_name")
+    company_id: UUID
     # Отправитель
     sender_city: UUID
     sender_timezone: Optional[str] = Field(None, max_length=50)
@@ -102,6 +103,7 @@ class ParcelCreateSchema(BaseModel):
 
 class ParcelEditSchema(BaseModel):
     name: Optional[str] = Field(None, alias="parcel_name")
+    company_id: Optional[UUID] = Field(None)
     # Всё опционально для PATCH/UPDATE
     sender_city: Optional[UUID] = None
     sender_timezone: Optional[str] = Field(None, max_length=50)
@@ -193,6 +195,7 @@ class ParcelResponseSchema(BaseModel):
 class ParcelSchema(BaseModel):
     id: UUID = Field(..., alias="parcel_id")
     name: str = Field(..., alias="parcel_name")
+    company_id: UUID = Field(...)
 
     # Отправитель
     sender_city: UUID
@@ -261,6 +264,7 @@ class ParcelCurrentStatusSchema(BaseModel):
 
 
 def parcel_filter_params(
+    company_id: Optional[UUID] = Query(None, description="ID компании"),
     parcel_name: Optional[str] = Query(None, description="Номер накладной"),
     sender_city: Optional[UUID] = Query(None, description="Город отправителя"),
     recipient_city: Optional[UUID] = Query(None, description="Город получателя"),
@@ -292,6 +296,7 @@ def parcel_filter_params(
     page_size: Optional[int] = Query(10, ge=1, le=100),
 ):
     return {
+        "company_id": company_id,
         "parcel_name": parcel_name,
         "sender_city": sender_city,
         "recipient_city": recipient_city,

@@ -11,6 +11,7 @@ async def test_add_parcel(test_app: AsyncClient, jwt_token_admin):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     data = {
+        "company_id": str(uuid4()),
         "parcel_name": "1111",
         "sender_city": str(uuid4()),
         "sender_address": "ул. Тестовая, д.1",

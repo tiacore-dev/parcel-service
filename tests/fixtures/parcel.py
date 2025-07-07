@@ -13,6 +13,7 @@ async def seed_parcel():
     time_to = (now + timedelta(hours=2)).time()  # например, +2 часа
 
     parcel = await Parcel.create(
+        company_id=uuid4(),
         name="111111",
         sender_city=uuid4(),
         sender_address="ул. Тестовая, д.1",

@@ -125,6 +125,9 @@ async def get_parcels(
     if filters.get("recipient_company"):
         query &= Q(recipient_company__icontains=filters["recipient_company"])
 
+    if filters.get("company_id"):
+        query &= Q(company_id=filters["company_id"])
+
     if filters.get("search"):
         query &= (
             Q(sender_address__icontains=filters["search"])
