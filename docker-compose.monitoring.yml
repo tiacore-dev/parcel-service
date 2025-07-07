@@ -2,7 +2,7 @@ services:
 
   prometheus:
     image: prom/prometheus
-    container_name: prometheus
+    container_name: prometheus-parcel
     volumes:
        - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
        - ./monitoring:/etc/prometheus:ro
@@ -13,7 +13,7 @@ services:
 
   grafana:
     image: grafana/grafana
-    container_name: grafana
+    container_name: grafana-parcel
     restart: always
     ports:
       - "${GRAFANA_PORT}:3000"
@@ -37,7 +37,7 @@ services:
 
   node-exporter:
     image: prom/node-exporter:latest
-    container_name: node-exporter
+    container_name: node-exporter-parcel
     restart: unless-stopped
     volumes:
       - /proc:/host/proc:ro
@@ -53,7 +53,7 @@ services:
 
   loki:
     image: grafana/loki:2.9.3
-    container_name: loki
+    container_name: loki-parcel
     restart: always
     volumes:
       - ./monitoring/loki-config.yml:/etc/loki/config.yml
@@ -63,7 +63,7 @@ services:
 
   promtail:
     image: grafana/promtail:2.9.3
-    container_name: promtail
+    container_name: promtail-parcel
     restart: always
     volumes:
       - ./logs:/app/logs            
@@ -74,7 +74,7 @@ services:
 
   jaeger:
     image: jaegertracing/all-in-one:latest
-    container_name: jaeger
+    container_name: jaeger-parcel
     restart: always
     networks:
       - parcel_network
