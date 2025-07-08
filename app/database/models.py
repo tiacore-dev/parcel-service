@@ -36,12 +36,8 @@ class Parcel(Model):
     sender_phone = fields.CharField(max_length=20)
     sender_email = fields.CharField(max_length=100, null=True)
     sender_telegram = fields.CharField(max_length=100, null=True)
-    sender_coordinates_latitude = fields.DecimalField(
-        max_digits=9, decimal_places=6, null=True
-    )
-    sender_coordinates_longitude = fields.DecimalField(
-        max_digits=9, decimal_places=6, null=True
-    )
+    sender_coordinates_latitude = fields.DecimalField(max_digits=9, decimal_places=6, null=True)
+    sender_coordinates_longitude = fields.DecimalField(max_digits=9, decimal_places=6, null=True)
     pickup_estimated_date = fields.DateField()
     pickup_time_from = fields.TimeField()
     pickup_time_to = fields.TimeField()
@@ -57,12 +53,8 @@ class Parcel(Model):
     recipient_phone = fields.CharField(max_length=20)
     recipient_email = fields.CharField(max_length=100, null=True)
     recipient_telegram = fields.CharField(max_length=100, null=True)
-    recipient_coordinates_latitude = fields.DecimalField(
-        max_digits=9, decimal_places=6, null=True
-    )
-    recipient_coordinates_longitude = fields.DecimalField(
-        max_digits=9, decimal_places=6, null=True
-    )
+    recipient_coordinates_latitude = fields.DecimalField(max_digits=9, decimal_places=6, null=True)
+    recipient_coordinates_longitude = fields.DecimalField(max_digits=9, decimal_places=6, null=True)
     delivery_estimated_date = fields.DateField()
     delivery_time_from = fields.TimeField()
     delivery_time_to = fields.TimeField()
@@ -119,8 +111,10 @@ class ParcelStatus(Model):
         on_delete=fields.CASCADE,
     )
     document_id = fields.UUIDField()
+    document_type = fields.CharField(max_length=50)
     status = fields.CharEnumField(ParcelStatusEnum)
     value = fields.UUIDField(null=True)
+    value_type = fields.CharField(max_length=255, null=True)
     date = fields.DateField()
     comment = fields.TextField(null=True)
 
@@ -128,8 +122,10 @@ class ParcelStatus(Model):
         return {
             "parcel_id": self.parcel_id,  # type: ignore
             "document_id": self.document_id,
+            "document_type": self.document_type,
             "status": self.status,
             "value": self.value,
+            "value_type": self.value_type,
             "date": self.date,
             "comment": self.comment,
         }

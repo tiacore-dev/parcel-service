@@ -22,8 +22,10 @@ async def seed_parcel_status(seed_parcel: Parcel):
     status = await ParcelStatus.create(
         parcel=seed_parcel,
         document_id=uuid4(),
+        document_type="arrival_id",
         status=ParcelStatusEnum.ON_WAREHOUSE,
         value=uuid4(),
+        value_type="warehouse_id",
         comment="Тестовый статус",
         date=datetime.now(),
     )
@@ -42,9 +44,11 @@ async def seed_pickup_from_sender(seed_parcel: Parcel):
     await ParcelStatus.create(
         parcel_id=seed_parcel.id,
         document_id=pickup.id,
+        document_type="pickup_id",
         status=ParcelStatusEnum.ON_WAREHOUSE,
         date=pickup.date,
         value=pickup.warehouse_id,
+        value_type="warehouse_id",
     )
     return pickup
 
@@ -61,6 +65,7 @@ async def seed_delivery_to_recipient(seed_parcel: Parcel):
     await ParcelStatus.create(
         parcel_id=seed_parcel.id,
         document_id=delivery.id,
+        document_type="delivery_id",
         status=ParcelStatusEnum.DELIVERED,
         date=delivery.date,
     )
@@ -79,6 +84,7 @@ async def seed_return_to_sender(seed_parcel: Parcel):
     await ParcelStatus.create(
         parcel_id=seed_parcel.id,
         document_id=return_obj.id,
+        document_type="return_id",
         status=ParcelStatusEnum.RETURNED,
         date=return_obj.date,
     )
@@ -95,9 +101,11 @@ async def seed_arrival_to_warehouse(seed_parcel: Parcel):
     await ParcelStatus.create(
         parcel_id=seed_parcel.id,
         document_id=arrival.id,
+        document_type="arrival_id",
         status=ParcelStatusEnum.ON_WAREHOUSE,
         date=arrival.date,
         value=arrival.warehouse_id,
+        value_type="warehouse_id",
     )
     return arrival
 
@@ -112,9 +120,11 @@ async def seed_issue_to_employee(seed_parcel: Parcel):
     await ParcelStatus.create(
         parcel_id=seed_parcel.id,
         document_id=issue.id,
+        document_type="issue_id",
         status=ParcelStatusEnum.WITH_EMPLOYEE,
         date=issue.date,
         value=issue.employee_id,
+        value_type="user_id",
     )
     return issue
 
@@ -138,6 +148,7 @@ async def seed_transit_details(seed_transit: Transit, seed_parcel: Parcel):
     await ParcelStatus.create(
         parcel_id=seed_parcel.id,
         document_id=detail.id,
+        document_type="transit_detail_id",
         status=ParcelStatusEnum.IN_TRANSIT,
         date=seed_transit.date,
     )

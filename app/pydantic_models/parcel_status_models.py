@@ -38,8 +38,10 @@ class ParcelStatusSchema(BaseModel):
     id: UUID = Field(..., alias="status_id")
     parcel_id: UUID
     document_id: UUID
+    document_type: str
     status: ParcelStatusEnum
     value: UUID
+    value_type: str
     comment: Optional[str] = None
 
     class Config:
@@ -59,8 +61,10 @@ class ParcelStatusListResponseSchema(BaseModel):
 def parcel_status_filter_params(
     parcel_id: Optional[UUID] = Query(None, description="Фильтр по ID накладной"),
     document_id: Optional[UUID] = Query(None, description="Фильтр по ID документа"),
+    document_type: Optional[str] = Query(None, description="Тип документа"),
     status: Optional[ParcelStatusEnum] = Query(None, description="Статус"),
     value: Optional[UUID] = Query(None, description="Значение"),
+    value_type: Optional[str] = Query(None, description="Тип значения"),
     sort_by: Optional[str] = Query("status", description="Поле для сортировки"),
     order: Optional[str] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1, description="Номер страницы"),
@@ -69,8 +73,10 @@ def parcel_status_filter_params(
     return {
         "parcel_id": parcel_id,
         "document_id": document_id,
+        "document_type": document_type,
         "status": status,
         "value": value,
+        "value_type": value_type,
         "sort_by": sort_by,
         "order": order,
         "page": page,

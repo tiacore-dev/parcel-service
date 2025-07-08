@@ -14,7 +14,7 @@ async def seed_parcel():
 
     parcel = await Parcel.create(
         company_id=uuid4(),
-        name="111111",
+        name="00001",
         sender_city=uuid4(),
         sender_address="ул. Тестовая, д.1",
         sender_company="Тест Отправитель",

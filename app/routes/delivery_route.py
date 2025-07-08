@@ -39,6 +39,7 @@ async def add_delivery_to_recipient(
     await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=delivery.id,
+        document_type="delivery_id",
         status=ParcelStatusEnum.DELIVERED,
         date=data.date,
     )
@@ -83,19 +84,11 @@ async def get_delivery_to_recipient_list(
     offset = (page - 1) * page_size
 
     total_count = await DeliveryToRecipient.filter(query).count()
-    deliveries = (
-        await DeliveryToRecipient.filter(query)
-        .order_by(sort_field)
-        .offset(offset)
-        .limit(page_size)
-    )
+    deliveries = await DeliveryToRecipient.filter(query).order_by(sort_field).offset(offset).limit(page_size)
 
     return DeliveryToRecipientListResponseSchema(
         total=total_count,
-        deliveries=[
-            DeliveryToRecipientSchema.model_validate(obj, from_attributes=True)
-            for obj in deliveries
-        ],
+        deliveries=[DeliveryToRecipientSchema.model_validate(obj, from_attributes=True) for obj in deliveries],
     )
 
 
@@ -126,11 +119,7 @@ async def edit_delivery_to_recipient(
     data: DeliveryToRecipientEditSchema,
     _: dict = Depends(require_permission_in_context("edit_delivery_to_recipient")),
 ):
-    delivery = (
-        await DeliveryToRecipient.filter(id=delivery_id)
-        .prefetch_related("parcel")
-        .first()
-    )
+    delivery = await DeliveryToRecipient.filter(id=delivery_id).prefetch_related("parcel").first()
 
     if not delivery:
         raise HTTPException(status_code=404, detail="Событие не найдено")
@@ -141,6 +130,7 @@ async def edit_delivery_to_recipient(
     await ParcelStatus.create(
         parcel_id=delivery.parcel.id,
         document_id=delivery.id,
+        document_type="delivery_id",
         status=ParcelStatusEnum.DELIVERED,
         date=delivery.date,
     )
@@ -158,11 +148,7 @@ async def delete_delivery_to_recipient(
     delivery_id: UUID,
     _: dict = Depends(require_permission_in_context("delete_delivery_to_recipient")),
 ):
-    delivery = (
-        await DeliveryToRecipient.filter(id=delivery_id)
-        .prefetch_related("parcel")
-        .first()
-    )
+    delivery = await DeliveryToRecipient.filter(id=delivery_id).prefetch_related("parcel").first()
 
     if not delivery:
         raise HTTPException(status_code=404, detail="Событие не найдено")

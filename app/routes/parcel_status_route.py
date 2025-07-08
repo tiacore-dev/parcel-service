@@ -14,21 +14,6 @@ from app.pydantic_models.parcel_status_models import (
 parcel_status_router = APIRouter()
 
 
-# @parcel_status_router.post(
-#     "/add",
-#     response_model=ParcelStatusResponseSchema,
-#     summary="Добавить статус накладной",
-#     status_code=status.HTTP_201_CREATED,
-# )
-# async def add_parcel_status(
-#     data: ParcelStatusCreateSchema,
-#     _: dict = Depends(require_permission_in_context("add_parcel_status")),
-# ):
-#     await validate_exists(Parcel, data.parcel_id, "Накладная")
-#     status_obj = await ParcelStatus.create(**data.model_dump())
-#     return ParcelStatusResponseSchema(status_id=status_obj.id)
-
-
 @parcel_status_router.get(
     "/all",
     response_model=ParcelStatusListResponseSchema,
@@ -52,6 +37,12 @@ async def get_parcel_statuses(
     if filters.get("value"):
         query &= Q(value=filters["value"])
 
+    if filters.get("document_type"):
+        query &= Q(document_type=filters["document_type"])
+
+    if filters.get("value_type"):
+        query &= Q(value_type=filters["value_type"])
+
     sort_by = filters.get("sort_by", "status")
     order = filters.get("order", "asc").lower()
     sort_field = sort_by if order == "asc" else f"-{sort_by}"
@@ -60,19 +51,11 @@ async def get_parcel_statuses(
     offset = (page - 1) * page_size
 
     total_count = await ParcelStatus.filter(query).count()
-    statuses = (
-        await ParcelStatus.filter(query)
-        .order_by(sort_field)
-        .offset(offset)
-        .limit(page_size)
-    )
+    statuses = await ParcelStatus.filter(query).order_by(sort_field).offset(offset).limit(page_size)
 
     return ParcelStatusListResponseSchema(
         total=total_count,
-        statuses=[
-            ParcelStatusSchema.model_validate(obj, from_attributes=True)
-            for obj in statuses
-        ],
+        statuses=[ParcelStatusSchema.model_validate(obj, from_attributes=True) for obj in statuses],
     )
 
 
@@ -91,42 +74,3 @@ async def get_parcel_status_by_id(
         raise HTTPException(status_code=404, detail="Статус не найден")
 
     return ParcelStatusSchema.model_validate(status_obj, from_attributes=True)
-
-
-# @parcel_status_router.patch(
-#     "/{status_id}",
-#     response_model=ParcelStatusResponseSchema,
-#     summary="Редактирование статуса накладной",
-# )
-# async def edit_parcel_status(
-#     status_id: UUID,
-#     data: ParcelStatusEditSchema,
-#     _: dict = Depends(require_permission_in_context("edit_parcel_status")),
-# ):
-#     status_obj = await ParcelStatus.filter(id=status_id).first()
-
-#     if not status_obj:
-#         raise HTTPException(status_code=404, detail="Статус не найден")
-
-#     await status_obj.update_from_dict(data.model_dump(exclude_unset=True))
-#     await status_obj.save()
-
-#     return ParcelStatusResponseSchema(status_id=status_obj.id)
-
-
-# @parcel_status_router.delete(
-#     "/{status_id}",
-#     summary="Удаление статуса накладной",
-#     status_code=status.HTTP_204_NO_CONTENT,
-# )
-# async def delete_parcel_status(
-#     status_id: UUID,
-#     _: dict = Depends(require_permission_in_context("delete_parcel_status")),
-# ):
-#     status_obj = await ParcelStatus.filter(id=status_id).first()
-
-#     if not status_obj:
-#         raise HTTPException(status_code=404, detail="Статус не найден")
-
-#     await status_obj.delete()
-#     return

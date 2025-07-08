@@ -11,7 +11,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 from app.database.models import ParcelStatusEnum
 
 IANA_TIMEZONES = available_timezones()
-PHONE_REGEX = re.compile(r"^\+7\d{10}$")
+PHONE_REGEX = re.compile(r"^\+\d{8,15}$")
 TELEGRAM_REGEX = re.compile(r"^@[\w\d_]{5,32}$")
 
 
@@ -69,9 +69,7 @@ class ParcelCreateSchema(BaseModel):
     @field_validator("sender_telegram", "recipient_telegram")
     def validate_telegram(cls, v):
         if v is not None and not TELEGRAM_REGEX.match(v):
-            raise ValueError(
-                "Телеграм должен быть в формате @username (латиница, цифры, _)"
-            )
+            raise ValueError("Телеграм должен быть в формате @username (латиница, цифры, _)")
         return v
 
     @field_validator("sender_timezone", "recipient_timezone")
@@ -153,9 +151,7 @@ class ParcelEditSchema(BaseModel):
     @field_validator("sender_telegram", "recipient_telegram")
     def validate_telegram(cls, v):
         if v is not None and not TELEGRAM_REGEX.match(v):
-            raise ValueError(
-                "Телеграм должен быть в формате @username (латиница, цифры, _)"
-            )
+            raise ValueError("Телеграм должен быть в формате @username (латиница, цифры, _)")
         return v
 
     @field_validator("sender_timezone", "recipient_timezone")
@@ -278,19 +274,13 @@ def parcel_filter_params(
     max_weight: Optional[float] = Query(None, description="Максимальный вес"),
     min_volume: Optional[float] = Query(None, description="Минимальный объем"),
     max_volume: Optional[float] = Query(None, description="Максимальный объем"),
-    sender_company: Optional[str] = Query(
-        None, description="Частичный поиск по компании отправителя"
-    ),
-    recipient_company: Optional[str] = Query(
-        None, description="Частичный поиск по компании получателя"
-    ),
+    sender_company: Optional[str] = Query(None, description="Частичный поиск по компании отправителя"),
+    recipient_company: Optional[str] = Query(None, description="Частичный поиск по компании получателя"),
     search: Optional[str] = Query(
         None,
         description="Поиск по адресу или названию компаний (отправителя/получателя)",
     ),
-    sort_by: Optional[str] = Query(
-        "pickup_estimated_date", description="Поле сортировки"
-    ),
+    sort_by: Optional[str] = Query("pickup_estimated_date", description="Поле сортировки"),
     order: Optional[str] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1),
     page_size: Optional[int] = Query(10, ge=1, le=100),

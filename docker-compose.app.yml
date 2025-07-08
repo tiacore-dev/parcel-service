@@ -23,6 +23,9 @@ services:
       - parcel_network
 
 
+volumes:
+  redis-master-data:
+
 networks:
   parcel_network:
     external: true

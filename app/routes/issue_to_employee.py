@@ -34,9 +34,11 @@ async def add_issue_to_employee(
     await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=issue.id,
+        document_type="issue_id",
         status=ParcelStatusEnum.WITH_EMPLOYEE,
         date=data.date,
         value=data.employee_id,
+        value_type="user_id",
     )
     await recalculate_parcel_status(data.parcel_id)
     return IssueToEmployeeResponseSchema(issue_id=issue.id)
@@ -73,19 +75,11 @@ async def get_issue_to_employee_list(
     offset = (page - 1) * page_size
 
     total_count = await IssueToEmployee.filter(query).count()
-    issues = (
-        await IssueToEmployee.filter(query)
-        .order_by(sort_field)
-        .offset(offset)
-        .limit(page_size)
-    )
+    issues = await IssueToEmployee.filter(query).order_by(sort_field).offset(offset).limit(page_size)
 
     return IssueToEmployeeListResponseSchema(
         total=total_count,
-        issues=[
-            IssueToEmployeeSchema.model_validate(obj, from_attributes=True)
-            for obj in issues
-        ],
+        issues=[IssueToEmployeeSchema.model_validate(obj, from_attributes=True) for obj in issues],
     )
 
 
@@ -127,9 +121,11 @@ async def edit_issue_to_employee(
     await ParcelStatus.create(
         parcel_id=issue.parcel.id,
         document_id=issue.id,
+        document_type="issue_id",
         status=ParcelStatusEnum.WITH_EMPLOYEE,
         date=issue.date,
         value=issue.employee_id,
+        value_type="user_id",
     )
     await recalculate_parcel_status(issue.parcel.id)
 

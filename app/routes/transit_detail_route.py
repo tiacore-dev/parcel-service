@@ -44,6 +44,7 @@ async def add_transit_details(
     await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=detail.id,
+        document_type="transit_detail_id",
         status=ParcelStatusEnum.IN_TRANSIT,
         date=transit.date,
     )
@@ -76,19 +77,11 @@ async def get_transit_details_list(
     offset = (page - 1) * page_size
 
     total_count = await TransitDetails.filter(query).count()
-    details = (
-        await TransitDetails.filter(query)
-        .order_by(sort_field)
-        .offset(offset)
-        .limit(page_size)
-    )
+    details = await TransitDetails.filter(query).order_by(sort_field).offset(offset).limit(page_size)
 
     return TransitDetailsListResponseSchema(
         total=total_count,
-        details=[
-            TransitDetailsSchema.model_validate(obj, from_attributes=True)
-            for obj in details
-        ],
+        details=[TransitDetailsSchema.model_validate(obj, from_attributes=True) for obj in details],
     )
 
 
@@ -119,11 +112,7 @@ async def edit_transit_details(
     data: TransitDetailsEditSchema,
     _: dict = Depends(require_permission_in_context("edit_transit_details")),
 ):
-    detail = (
-        await TransitDetails.filter(id=details_id)
-        .prefetch_related("parcel", "transit")
-        .first()
-    )
+    detail = await TransitDetails.filter(id=details_id).prefetch_related("parcel", "transit").first()
 
     if not detail:
         raise HTTPException(status_code=404, detail="Деталь транзита не найдена")
@@ -134,6 +123,7 @@ async def edit_transit_details(
     await ParcelStatus.create(
         parcel_id=detail.parcel.id,
         document_id=detail.id,
+        document_type="transit_detail_id",
         status=ParcelStatusEnum.IN_TRANSIT,
         date=detail.transit.date,
     )
@@ -150,9 +140,7 @@ async def delete_transit_details(
     details_id: UUID,
     _: dict = Depends(require_permission_in_context("delete_transit_details")),
 ):
-    detail = (
-        await TransitDetails.filter(id=details_id).prefetch_related("parcel").first()
-    )
+    detail = await TransitDetails.filter(id=details_id).prefetch_related("parcel").first()
 
     if not detail:
         raise HTTPException(status_code=404, detail="Деталь транзита не найдена")

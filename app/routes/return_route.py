@@ -34,6 +34,7 @@ async def add_return_to_sender(
     await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=return_obj.id,
+        document_type="return_id",
         status=ParcelStatusEnum.RETURNED,
         date=data.date,
     )
@@ -78,19 +79,11 @@ async def get_return_to_sender_list(
     offset = (page - 1) * page_size
 
     total_count = await ReturnToSender.filter(query).count()
-    returns = (
-        await ReturnToSender.filter(query)
-        .order_by(sort_field)
-        .offset(offset)
-        .limit(page_size)
-    )
+    returns = await ReturnToSender.filter(query).order_by(sort_field).offset(offset).limit(page_size)
 
     return ReturnToSenderListResponseSchema(
         total=total_count,
-        returns=[
-            ReturnToSenderSchema.model_validate(obj, from_attributes=True)
-            for obj in returns
-        ],
+        returns=[ReturnToSenderSchema.model_validate(obj, from_attributes=True) for obj in returns],
     )
 
 
@@ -121,9 +114,7 @@ async def edit_return_to_sender(
     data: ReturnToSenderEditSchema,
     _: dict = Depends(require_permission_in_context("edit_return_to_sender")),
 ):
-    return_obj = (
-        await ReturnToSender.filter(id=return_id).prefetch_related("parcel").first()
-    )
+    return_obj = await ReturnToSender.filter(id=return_id).prefetch_related("parcel").first()
 
     if not return_obj:
         raise HTTPException(status_code=404, detail="Событие не найдено")
@@ -134,6 +125,7 @@ async def edit_return_to_sender(
     await ParcelStatus.create(
         parcel_id=return_obj.parcel.id,
         document_id=return_obj.id,
+        document_type="return_id",
         status=ParcelStatusEnum.RETURNED,
         date=return_obj.date,
     )
@@ -151,9 +143,7 @@ async def delete_return_to_sender(
     return_id: UUID,
     _: dict = Depends(require_permission_in_context("delete_return_to_sender")),
 ):
-    return_obj = (
-        await ReturnToSender.filter(id=return_id).prefetch_related("parcel").first()
-    )
+    return_obj = await ReturnToSender.filter(id=return_id).prefetch_related("parcel").first()
 
     if not return_obj:
         raise HTTPException(status_code=404, detail="Событие не найдено")

@@ -35,17 +35,21 @@ async def add_pickup_from_sender(
         await ParcelStatus.create(
             parcel_id=data.parcel_id,
             document_id=pickup.id,
+            document_type="pickup_id",
             status=ParcelStatusEnum.ON_WAREHOUSE,
             date=data.date,
             value=data.warehouse_id,
+            value_type="warehouse_id",
         )
     else:
         await ParcelStatus.create(
             parcel_id=data.parcel_id,
             document_id=pickup.id,
+            document_type="pickup_id",
             status=ParcelStatusEnum.WITH_EMPLOYEE,
             date=data.date,
             value=data.employee_id,
+            value_type="user_id",
         )
     await recalculate_parcel_status(data.parcel_id)
     return PickupFromSenderResponseSchema(pickup_id=pickup.id)
@@ -88,19 +92,11 @@ async def get_pickup_from_sender_list(
     offset = (page - 1) * page_size
 
     total_count = await PickupFromSender.filter(query).count()
-    pickups = (
-        await PickupFromSender.filter(query)
-        .order_by(sort_field)
-        .offset(offset)
-        .limit(page_size)
-    )
+    pickups = await PickupFromSender.filter(query).order_by(sort_field).offset(offset).limit(page_size)
 
     return PickupFromSenderListResponseSchema(
         total=total_count,
-        pickups=[
-            PickupFromSenderSchema.model_validate(obj, from_attributes=True)
-            for obj in pickups
-        ],
+        pickups=[PickupFromSenderSchema.model_validate(obj, from_attributes=True) for obj in pickups],
     )
 
 
@@ -131,9 +127,7 @@ async def edit_pickup_from_sender(
     data: PickupFromSenderEditSchema,
     _: dict = Depends(require_permission_in_context("edit_pickup_from_sender")),
 ):
-    pickup = (
-        await PickupFromSender.filter(id=pickup_id).prefetch_related("parcel").first()
-    )
+    pickup = await PickupFromSender.filter(id=pickup_id).prefetch_related("parcel").first()
 
     if not pickup:
         raise HTTPException(status_code=404, detail="Событие не найдено")
@@ -145,17 +139,21 @@ async def edit_pickup_from_sender(
         await ParcelStatus.create(
             parcel_id=pickup.parcel.id,
             document_id=pickup.id,
+            document_type="pickup_id",
             status=ParcelStatusEnum.ON_WAREHOUSE,
             date=pickup.date,
             value=pickup.warehouse_id,
+            value_type="warehouse_id",
         )
     else:
         await ParcelStatus.create(
             parcel_id=pickup.parcel.id,
             document_id=pickup.id,
+            document_type="pickup_id",
             status=ParcelStatusEnum.WITH_EMPLOYEE,
             date=pickup.date,
             value=pickup.employee_id,
+            value_type="user_id",
         )
 
     await recalculate_parcel_status(pickup.parcel.id)
@@ -172,9 +170,7 @@ async def delete_pickup_from_sender(
     pickup_id: UUID,
     _: dict = Depends(require_permission_in_context("delete_pickup_from_sender")),
 ):
-    pickup = (
-        await PickupFromSender.filter(id=pickup_id).prefetch_related("parcel").first()
-    )
+    pickup = await PickupFromSender.filter(id=pickup_id).prefetch_related("parcel").first()
 
     if not pickup:
         raise HTTPException(status_code=404, detail="Событие не найдено")

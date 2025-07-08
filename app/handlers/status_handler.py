@@ -14,8 +14,10 @@ def get_parcel_status_cache_key(parcel_id: UUID) -> str:
 async def save_parcel_status_to_cache(
     parcel_id: UUID,
     document_id: UUID,
+    document_type: str,
     status: ParcelStatusEnum,
     value: UUID | None,
+    value_type: str | None,
     date: datetime,
     comment: str | None,
 ):
@@ -23,8 +25,10 @@ async def save_parcel_status_to_cache(
     data = {
         "parcel_id": str(parcel_id),
         "document_id": str(document_id),
+        "document_type": document_type,
         "status": status.value,
         "value": str(value) if value else None,
+        "value_type": value_type if value_type else None,
         "date": date.isoformat(),
         "comment": comment,
     }
@@ -52,9 +56,7 @@ async def get_cached_parcel_status_data(parcel_id: UUID) -> dict:
 
 async def recalculate_parcel_status(parcel_id: UUID):
     await invalidate_parcel_status_cache(parcel_id)
-    latest_status = (
-        await ParcelStatus.filter(parcel_id=parcel_id).order_by("-date").first()
-    )
+    latest_status = await ParcelStatus.filter(parcel_id=parcel_id).order_by("-date").first()
 
     if not latest_status:
         return {"error": "No statuses found for this parcel"}

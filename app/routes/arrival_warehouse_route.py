@@ -39,9 +39,11 @@ async def add_arrival_to_warehouse(
     await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=arrival.id,
+        document_type="arrival_id",
         status=ParcelStatusEnum.ON_WAREHOUSE,
         date=data.date,
         value=data.warehouse_id,
+        value_type="warehouse_id",
     )
     await recalculate_parcel_status(data.parcel_id)
     return ArrivalToWarehouseResponseSchema(arrival_id=arrival.id)
@@ -78,19 +80,11 @@ async def get_arrival_to_warehouse_list(
     offset = (page - 1) * page_size
 
     total_count = await ArrivalToWarehouse.filter(query).count()
-    arrivals = (
-        await ArrivalToWarehouse.filter(query)
-        .order_by(sort_field)
-        .offset(offset)
-        .limit(page_size)
-    )
+    arrivals = await ArrivalToWarehouse.filter(query).order_by(sort_field).offset(offset).limit(page_size)
 
     return ArrivalToWarehouseListResponseSchema(
         total=total_count,
-        arrivals=[
-            ArrivalToWarehouseSchema.model_validate(obj, from_attributes=True)
-            for obj in arrivals
-        ],
+        arrivals=[ArrivalToWarehouseSchema.model_validate(obj, from_attributes=True) for obj in arrivals],
     )
 
 
@@ -121,11 +115,7 @@ async def edit_arrival_to_warehouse(
     data: ArrivalToWarehouseEditSchema,
     _: dict = Depends(require_permission_in_context("edit_arrival_to_warehouse")),
 ):
-    arrival = (
-        await ArrivalToWarehouse.filter(id=arrival_id)
-        .prefetch_related("parcel")
-        .first()
-    )
+    arrival = await ArrivalToWarehouse.filter(id=arrival_id).prefetch_related("parcel").first()
 
     if not arrival:
         raise HTTPException(status_code=404, detail="Событие не найдено")
@@ -136,9 +126,11 @@ async def edit_arrival_to_warehouse(
     await ParcelStatus.create(
         parcel_id=arrival.parcel.id,
         document_id=arrival.id,
+        document_type="arrival_id",
         status=ParcelStatusEnum.ON_WAREHOUSE,
         date=arrival.date,
         value=arrival.warehouse_id,
+        value_type="warehouse_id",
     )
     await recalculate_parcel_status(arrival.parcel.id)
     return ArrivalToWarehouseResponseSchema(arrival_id=arrival.id)
@@ -153,11 +145,7 @@ async def delete_arrival_to_warehouse(
     arrival_id: UUID,
     _: dict = Depends(require_permission_in_context("delete_arrival_to_warehouse")),
 ):
-    arrival = (
-        await ArrivalToWarehouse.filter(id=arrival_id)
-        .prefetch_related("parcel")
-        .first()
-    )
+    arrival = await ArrivalToWarehouse.filter(id=arrival_id).prefetch_related("parcel").first()
 
     if not arrival:
         raise HTTPException(status_code=404, detail="Событие не найдено")
