@@ -43,8 +43,8 @@ async def add_transit_details(
     detail = await TransitDetails.create(**data.model_dump())
     await ParcelStatus.create(
         parcel_id=data.parcel_id,
-        document_id=detail.id,
-        document_type="transit_detail_id",
+        document_id=transit.id,
+        document_type="transit_id",
         status=ParcelStatusEnum.IN_TRANSIT,
         date=transit.date,
     )
@@ -122,8 +122,8 @@ async def edit_transit_details(
     await recalculate_parcel_status(detail.parcel.id)
     await ParcelStatus.create(
         parcel_id=detail.parcel.id,
-        document_id=detail.id,
-        document_type="transit_detail_id",
+        document_id=detail.transit.id,
+        document_type="transit_id",
         status=ParcelStatusEnum.IN_TRANSIT,
         date=detail.transit.date,
     )

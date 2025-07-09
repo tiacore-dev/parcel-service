@@ -250,8 +250,10 @@ class ParcelListResponseSchema(BaseModel):
 class ParcelCurrentStatusSchema(BaseModel):
     parcel_id: UUID
     document_id: UUID
+    document_type: str
     status: ParcelStatusEnum
-    value: UUID
+    value: Optional[UUID] = Field(None)
+    value_type: Optional[str] = Field(None)
     comment: Optional[str] = None
 
     class Config:
