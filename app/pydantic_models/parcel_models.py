@@ -16,7 +16,7 @@ TELEGRAM_REGEX = re.compile(r"^@[\w\d_]{5,32}$")
 
 
 class ParcelCreateSchema(BaseModel):
-    name: str = Field(..., alias="parcel_name")
+    name: Optional[str] = Field(None, alias="parcel_name")
     company_id: UUID
     # Отправитель
     sender_city: UUID

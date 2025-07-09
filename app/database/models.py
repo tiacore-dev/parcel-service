@@ -27,6 +27,14 @@ class DeliveryType(str, Enum):
     WAREHOUSE = "warehouse"
 
 
+class ParcelCounter(Model):
+    id = fields.IntField(pk=True)
+    last_number = fields.IntField(default=0)
+
+    class Meta:
+        table = "parcel_counter"
+
+
 class Parcel(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
     name = fields.CharField(max_length=255, unique=True)

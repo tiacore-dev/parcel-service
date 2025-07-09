@@ -16,6 +16,7 @@ from app.pydantic_models.parcel_models import (
     ParcelSchema,
     parcel_filter_params,
 )
+from app.utils.db_helpers import generate_parcel_name
 
 parcel_router = APIRouter()
 
@@ -28,9 +29,12 @@ parcel_router = APIRouter()
 )
 async def add_parcel(
     data: ParcelCreateSchema,
-    _t=Depends(require_permission_in_context("add_parcel")),
+    _=Depends(require_permission_in_context("add_parcel")),
 ):
-    parcel = await Parcel.create(**data.model_dump())
+    create_data = data.model_dump()
+    if not data.name:
+        create_data["name"] = await generate_parcel_name()
+    parcel = await Parcel.create(**create_data)
 
     return ParcelResponseSchema(parcel_id=parcel.id)
 

@@ -45,6 +45,44 @@ async def test_add_parcel(test_app: AsyncClient, jwt_token_admin):
 
 
 @pytest.mark.asyncio
+async def test_add_parcel_no_name(test_app: AsyncClient, jwt_token_admin):
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
+
+    data = {
+        "company_id": str(uuid4()),
+        "sender_city": str(uuid4()),
+        "sender_delivery_type": "door",
+        "sender_address": "ул. Тестовая, д.1",
+        "sender_company": "Тест Отправитель",
+        "sender_phone": "+79999999999",
+        "pickup_estimated_date": "2025-06-25",
+        "pickup_time_from": "10:00:00",
+        "pickup_time_to": "12:00:00",
+        "recipient_city": str(uuid4()),
+        "recipient_address": "ул. Получательская, д.2",
+        "recipient_delivery_type": "door",
+        "recipient_company": "Тест Получатель",
+        "recipient_phone": "+79998887766",
+        "delivery_estimated_date": "2025-06-26",
+        "delivery_time_from": "10:00:00",
+        "delivery_time_to": "12:00:00",
+        "recipient_additional_info": "Доп. инфа по получателю",
+    }
+
+    response = await test_app.post("/api/parcels/add", headers=headers, json=data)
+
+    assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
+
+    response_data = response.json()
+    parcel = await Parcel.get_or_none(id=response_data["parcel_id"])
+
+    assert parcel is not None
+    assert parcel.name == "000000001"
+    assert parcel.sender_company == "Тест Отправитель"
+    assert parcel.recipient_company == "Тест Получатель"
+
+
+@pytest.mark.asyncio
 async def test_edit_parcel(test_app: AsyncClient, jwt_token_admin, seed_parcel: Parcel):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
