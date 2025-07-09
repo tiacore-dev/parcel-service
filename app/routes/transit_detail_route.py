@@ -46,6 +46,8 @@ async def add_transit_details(
         document_id=transit.id,
         document_type="transit_id",
         status=ParcelStatusEnum.IN_TRANSIT,
+        value=transit.warehouse_to_id,
+        value_type="warehouse_id",
         date=transit.date,
     )
     await recalculate_parcel_status(data.parcel_id)
@@ -125,6 +127,8 @@ async def edit_transit_details(
         document_id=detail.transit.id,
         document_type="transit_id",
         status=ParcelStatusEnum.IN_TRANSIT,
+        value=detail.transit.warehouse_to_id,
+        value_type="warehouse_id",
         date=detail.transit.date,
     )
     await recalculate_parcel_status(detail.parcel.id)
