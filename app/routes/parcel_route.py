@@ -1,3 +1,4 @@
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -146,22 +147,17 @@ async def get_parcels(
     offset = (page - 1) * page_size
 
     total_count = await Parcel.filter(query).count()
-    parcels = (
-        await Parcel.filter(query).order_by(sort_field).offset(offset).limit(page_size)
-    )
+    parcels = await Parcel.filter(query).order_by(sort_field).offset(offset).limit(page_size)
 
     return ParcelListResponseSchema(
         total=total_count,
-        parcels=[
-            ParcelSchema.model_validate(parcel, from_attributes=True)
-            for parcel in parcels
-        ],
+        parcels=[ParcelSchema.model_validate(parcel, from_attributes=True) for parcel in parcels],
     )
 
 
 @parcel_router.get(
     "/{parcel_id}/status",
-    response_model=ParcelCurrentStatusSchema,
+    response_model=Optional[ParcelCurrentStatusSchema],
     summary="Получение актуального статуса накладной",
 )
 async def get_parcel_status(
@@ -169,6 +165,8 @@ async def get_parcel_status(
     _: dict = Depends(require_permission_in_context("get_parcel_current_status")),
 ):
     data = await get_cached_parcel_status_data(parcel_id=parcel_id)
+    if not data:
+        return None
     return ParcelCurrentStatusSchema(**data)
 
 

@@ -43,7 +43,7 @@ async def invalidate_parcel_status_cache(parcel_id: UUID):
     await FastAPICache.clear(key)
 
 
-async def get_cached_parcel_status_data(parcel_id: UUID) -> dict:
+async def get_cached_parcel_status_data(parcel_id: UUID) -> dict | None:
     backend = FastAPICache.get_backend()
     key = get_parcel_status_cache_key(parcel_id)
     cached = await backend.get(key)
@@ -51,7 +51,8 @@ async def get_cached_parcel_status_data(parcel_id: UUID) -> dict:
     if cached and cached != b"":
         return json.loads(cached)
     else:
-        return {"error": True}
+        data = await recalculate_parcel_status(parcel_id)
+        return data
 
 
 async def recalculate_parcel_status(parcel_id: UUID):
@@ -59,5 +60,6 @@ async def recalculate_parcel_status(parcel_id: UUID):
     latest_status = await ParcelStatus.filter(parcel_id=parcel_id).order_by("-date").first()
 
     if not latest_status:
-        return {"error": "No statuses found for this parcel"}
-    await save_parcel_status_to_cache(**latest_status.to_cache_dict())
+        return None
+    data = await save_parcel_status_to_cache(**latest_status.to_cache_dict())
+    return data
