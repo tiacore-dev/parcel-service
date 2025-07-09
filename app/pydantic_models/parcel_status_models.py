@@ -40,9 +40,9 @@ class ParcelStatusSchema(BaseModel):
     document_id: UUID
     document_type: str
     status: ParcelStatusEnum
-    value: UUID
-    value_type: str
-    comment: Optional[str] = None
+    value: Optional[UUID] = Field(None)
+    value_type: Optional[str] = Field(None)
+    comment: Optional[str] = Field(None)
 
     class Config:
         from_attributes = True
