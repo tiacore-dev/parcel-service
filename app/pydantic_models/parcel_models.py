@@ -8,7 +8,7 @@ from zoneinfo import available_timezones
 from fastapi import Query
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from app.database.models import ParcelStatusEnum
+from app.database.models import DeliveryType, ParcelStatusEnum
 
 IANA_TIMEZONES = available_timezones()
 PHONE_REGEX = re.compile(r"^\+\d{8,15}$")
@@ -23,6 +23,7 @@ class ParcelCreateSchema(BaseModel):
     sender_timezone: Optional[str] = Field(None, max_length=50)
     sender_address: str = Field(..., max_length=255)
     sender_warehouse: Optional[UUID] = Field(None)
+    sender_delivery_type: DeliveryType
     sender_personal_data: Optional[UUID] = Field(None)
     sender_company: str = Field(..., max_length=255)
     sender_phone: str = Field(..., max_length=20)
@@ -40,6 +41,7 @@ class ParcelCreateSchema(BaseModel):
     recipient_timezone: Optional[str] = Field(None, max_length=50)
     recipient_address: str = Field(..., max_length=255)
     recipient_warehouse: Optional[UUID] = Field(None)
+    recipient_delivery_type: DeliveryType
     recipient_personal_data: Optional[UUID] = Field(None)
     recipient_company: str = Field(..., max_length=255)
     recipient_phone: str = Field(..., max_length=20)
@@ -107,6 +109,7 @@ class ParcelEditSchema(BaseModel):
     sender_timezone: Optional[str] = Field(None, max_length=50)
     sender_address: Optional[str] = Field(None, max_length=255)
     sender_warehouse: Optional[UUID] = None
+    sender_delivery_type: Optional[DeliveryType] = Field(None)
     sender_personal_data: Optional[UUID] = None
     sender_company: Optional[str] = Field(None, max_length=255)
     sender_phone: Optional[str] = Field(None, max_length=20)
@@ -123,6 +126,7 @@ class ParcelEditSchema(BaseModel):
     recipient_timezone: Optional[str] = Field(None, max_length=50)
     recipient_address: Optional[str] = Field(None, max_length=255)
     recipient_warehouse: Optional[UUID] = None
+    recipient_delivery_type: Optional[DeliveryType] = Field(None)
     recipient_personal_data: Optional[UUID] = None
     recipient_company: Optional[str] = Field(None, max_length=255)
     recipient_phone: Optional[str] = Field(None, max_length=20)
@@ -198,6 +202,7 @@ class ParcelSchema(BaseModel):
     sender_timezone: Optional[str] = Field(None, max_length=50)
     sender_address: str
     sender_warehouse: Optional[UUID] = Field(None)
+    sender_delivery_type: DeliveryType
     sender_personal_data: Optional[UUID] = Field(None)
     sender_company: str
     sender_phone: str
@@ -215,6 +220,7 @@ class ParcelSchema(BaseModel):
     recipient_timezone: Optional[str] = Field(None, max_length=50)
     recipient_address: str
     recipient_warehouse: Optional[UUID] = Field(None)
+    recipient_delivery_type: DeliveryType
     recipient_personal_data: Optional[UUID] = Field(None)
     recipient_company: str
     recipient_phone: str

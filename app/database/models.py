@@ -22,6 +22,11 @@ class ParcelStatusEnum(str, Enum):
         }[self.value]
 
 
+class DeliveryType(str, Enum):
+    DOOR = "door"
+    WAREHOUSE = "warehouse"
+
+
 class Parcel(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
     name = fields.CharField(max_length=255, unique=True)
@@ -31,6 +36,7 @@ class Parcel(Model):
     sender_timezone = fields.CharField(max_length=50, null=True)
     sender_address = fields.CharField(max_length=255)
     sender_warehouse = fields.UUIDField(null=True)
+    sender_delivery_type = fields.CharEnumField(DeliveryType)
     sender_personal_data = fields.UUIDField(null=True)
     sender_company = fields.CharField(max_length=255)
     sender_phone = fields.CharField(max_length=20)
@@ -48,6 +54,7 @@ class Parcel(Model):
     recipient_timezone = fields.CharField(max_length=50, null=True)
     recipient_address = fields.CharField(max_length=255)
     recipient_warehouse = fields.UUIDField(null=True)
+    recipient_delivery_type = fields.CharEnumField(DeliveryType)
     recipient_personal_data = fields.UUIDField(null=True)
     recipient_company = fields.CharField(max_length=255)
     recipient_phone = fields.CharField(max_length=20)

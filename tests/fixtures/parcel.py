@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.database.models import Parcel
+from app.database.models import DeliveryType, Parcel
 
 
 @pytest.fixture
@@ -17,6 +17,7 @@ async def seed_parcel():
         name="00001",
         sender_city=uuid4(),
         sender_address="ул. Тестовая, д.1",
+        sender_delivery_type=DeliveryType.DOOR,
         sender_company="Тест Отправитель",
         sender_phone="+79999999999",
         pickup_estimated_date=date.today(),
@@ -25,6 +26,7 @@ async def seed_parcel():
         sender_additional_info="Тестовая доп. информация",
         recipient_city=uuid4(),
         recipient_address="ул. Получательская, д.2",
+        recipient_delivery_type=DeliveryType.DOOR,
         recipient_company="Тест Получатель",
         recipient_phone="+79998887766",
         delivery_estimated_date=date.today(),
