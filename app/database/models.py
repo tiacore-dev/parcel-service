@@ -70,9 +70,9 @@ class Parcel(Model):
     recipient_telegram = fields.CharField(max_length=100, null=True)
     recipient_coordinates_latitude = fields.DecimalField(max_digits=9, decimal_places=6, null=True)
     recipient_coordinates_longitude = fields.DecimalField(max_digits=9, decimal_places=6, null=True)
-    delivery_estimated_date = fields.DateField()
-    delivery_time_from = fields.TimeField()
-    delivery_time_to = fields.TimeField()
+    delivery_estimated_date = fields.DateField(null=True)
+    delivery_time_from = fields.TimeField(null=True)
+    delivery_time_to = fields.TimeField(null=True)
     recipient_additional_info = fields.TextField(null=True)
 
     # Общая информация

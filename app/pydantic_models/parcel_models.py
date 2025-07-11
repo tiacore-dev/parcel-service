@@ -49,9 +49,9 @@ class ParcelCreateSchema(BaseModel):
     recipient_telegram: Optional[str] = Field(None, max_length=100)
     recipient_coordinates_latitude: Optional[Decimal] = Field(None)
     recipient_coordinates_longitude: Optional[Decimal] = Field(None)
-    delivery_estimated_date: date
-    delivery_time_from: time
-    delivery_time_to: time
+    delivery_estimated_date: Optional[date] = Field(None)
+    delivery_time_from: Optional[time] = Field(None)
+    delivery_time_to: Optional[time] = Field(None)
     recipient_additional_info: Optional[str] = None
 
     # Общая информация
@@ -228,10 +228,10 @@ class ParcelSchema(BaseModel):
     recipient_telegram: Optional[str] = Field(None, max_length=100)
     recipient_coordinates_latitude: Optional[Decimal] = None
     recipient_coordinates_longitude: Optional[Decimal] = None
-    delivery_estimated_date: date
-    delivery_time_from: time
-    delivery_time_to: time
-    recipient_additional_info: Optional[str] = None
+    delivery_estimated_date: Optional[date] = Field(None)
+    delivery_time_from: Optional[time] = Field(None)
+    delivery_time_to: Optional[time] = Field(None)
+    recipient_additional_info: Optional[str] = Field(None)
 
     # Общая информация
     note: Optional[str] = None
