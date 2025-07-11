@@ -235,8 +235,8 @@ class ParcelSchema(BaseModel):
 
     # Общая информация
     note: Optional[str] = None
-    weight: Decimal
-    volume: Decimal
+    weight: float
+    volume: float
     places_count: int
 
     class Config:

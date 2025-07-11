@@ -47,11 +47,11 @@ class ParcelCargoSchema(BaseModel):
     length: Decimal
     height: Decimal
     width: Decimal
-    volume: Decimal
+    volume: float
     quantity: int
     cargo_type: str
-    total_weight: Decimal
-    total_volume: Decimal
+    total_weight: float
+    total_volume: float
     comment: Optional[str] = None
 
     class Config:

@@ -78,7 +78,7 @@ class Parcel(Model):
     # Общая информация
     note = fields.TextField(null=True)
     weight = fields.DecimalField(max_digits=10, decimal_places=2)
-    volume = fields.DecimalField(max_digits=10, decimal_places=2)
+    volume = fields.DecimalField(max_digits=10, decimal_places=9)
     places_count = fields.IntField()
 
     class Meta:
@@ -92,11 +92,11 @@ class ParcelCargo(Model):
     length = fields.DecimalField(max_digits=10, decimal_places=2)
     height = fields.DecimalField(max_digits=10, decimal_places=2)
     width = fields.DecimalField(max_digits=10, decimal_places=2)
-    volume = fields.DecimalField(max_digits=10, decimal_places=2)
+    volume = fields.DecimalField(max_digits=10, decimal_places=9)
     quantity = fields.IntField()
     cargo_type = fields.CharField(max_length=100)
     total_weight = fields.DecimalField(max_digits=10, decimal_places=2)
-    total_volume = fields.DecimalField(max_digits=10, decimal_places=2)
+    total_volume = fields.DecimalField(max_digits=10, decimal_places=9)
     comment = fields.TextField(null=True)
 
     class Meta:
