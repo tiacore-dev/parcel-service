@@ -6,7 +6,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 docker-compose.dev.yml
-
+.vscode
 # C extensions
 *.so
 text.txt
