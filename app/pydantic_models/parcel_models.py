@@ -20,7 +20,7 @@ class ParcelCreateSchema(BaseModel):
     company_id: UUID
     # Отправитель
     sender_city: UUID
-    sender_timezone: Optional[str] = Field(None, max_length=50)
+
     sender_address: str = Field(..., max_length=255)
     sender_warehouse: Optional[UUID] = Field(None)
     sender_delivery_type: DeliveryType
@@ -38,7 +38,7 @@ class ParcelCreateSchema(BaseModel):
 
     # Получатель
     recipient_city: UUID
-    recipient_timezone: Optional[str] = Field(None, max_length=50)
+
     recipient_address: str = Field(..., max_length=255)
     recipient_warehouse: Optional[UUID] = Field(None)
     recipient_delivery_type: DeliveryType
@@ -106,7 +106,7 @@ class ParcelEditSchema(BaseModel):
     company_id: Optional[UUID] = Field(None)
     # Всё опционально для PATCH/UPDATE
     sender_city: Optional[UUID] = None
-    sender_timezone: Optional[str] = Field(None, max_length=50)
+
     sender_address: Optional[str] = Field(None, max_length=255)
     sender_warehouse: Optional[UUID] = None
     sender_delivery_type: Optional[DeliveryType] = Field(None)
@@ -123,7 +123,7 @@ class ParcelEditSchema(BaseModel):
     sender_additional_info: Optional[str] = None
 
     recipient_city: Optional[UUID] = None
-    recipient_timezone: Optional[str] = Field(None, max_length=50)
+
     recipient_address: Optional[str] = Field(None, max_length=255)
     recipient_warehouse: Optional[UUID] = None
     recipient_delivery_type: Optional[DeliveryType] = Field(None)
@@ -199,7 +199,7 @@ class ParcelSchema(BaseModel):
 
     # Отправитель
     sender_city: UUID
-    sender_timezone: Optional[str] = Field(None, max_length=50)
+
     sender_address: str
     sender_warehouse: Optional[UUID] = Field(None)
     sender_delivery_type: DeliveryType
@@ -217,7 +217,7 @@ class ParcelSchema(BaseModel):
 
     # Получатель
     recipient_city: UUID
-    recipient_timezone: Optional[str] = Field(None, max_length=50)
+
     recipient_address: str
     recipient_warehouse: Optional[UUID] = Field(None)
     recipient_delivery_type: DeliveryType
@@ -288,7 +288,7 @@ def parcel_filter_params(
         None,
         description="Поиск по адресу или названию компаний (отправителя/получателя)",
     ),
-    sort_by: Optional[str] = Query("pickup_estimated_date", description="Поле сортировки"),
+    sort_by: Optional[str] = Query("created_at", description="Поле сортировки"),
     order: Optional[str] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1),
     page_size: Optional[int] = Query(10, ge=1, le=100),
