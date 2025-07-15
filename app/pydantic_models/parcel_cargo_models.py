@@ -9,12 +9,12 @@ from pydantic import BaseModel, Field
 
 class ParcelCargoCreateSchema(BaseModel):
     parcel_id: UUID
+    cargo_type_id: UUID
     weight: Decimal = Field(..., ge=0.01)
     length: Decimal = Field(..., ge=0.01)
     height: Decimal = Field(..., ge=0.01)
     width: Decimal = Field(..., ge=0.01)
     quantity: int = Field(..., gt=0)
-    cargo_type: str = Field(..., max_length=100)
     comment: Optional[str] = None
 
     class Config:
@@ -22,12 +22,12 @@ class ParcelCargoCreateSchema(BaseModel):
 
 
 class ParcelCargoEditSchema(BaseModel):
+    cargo_type_id: Optional[UUID] = Field(None)
     weight: Optional[Decimal] = Field(None, ge=0.01)
     length: Optional[Decimal] = Field(None, ge=0.01)
     height: Optional[Decimal] = Field(None, ge=0.01)
     width: Optional[Decimal] = Field(None, ge=0.01)
     quantity: Optional[int] = Field(None, gt=0)
-    cargo_type: Optional[str] = Field(None, max_length=100)
     comment: Optional[str] = None
 
     class Config:
@@ -43,6 +43,7 @@ class ParcelCargoResponseSchema(BaseModel):
 
 class ParcelCargoSchema(BaseModel):
     id: UUID = Field(..., alias="cargo_id")
+    cargo_type_id: Optional[UUID] = Field(None)
     parcel_id: UUID
     weight: Decimal
     length: Decimal
@@ -50,7 +51,6 @@ class ParcelCargoSchema(BaseModel):
     width: Decimal
     volume: float
     quantity: int
-    cargo_type: str
     total_weight: float
     total_volume: float
     comment: Optional[str] = None
@@ -76,15 +76,15 @@ class ParcelCargoListResponseSchema(BaseModel):
 
 def parcel_cargo_filter_params(
     parcel_id: Optional[UUID] = Query(None, description="Фильтр по ID накладной"),
-    cargo_type: Optional[str] = Query(None, description="Тип груза"),
-    sort_by: Optional[str] = Query("cargo_type", description="Поле сортировки"),
+    cargo_type_id: Optional[UUID] = Query(None, description="Тип груза"),
+    sort_by: Optional[str] = Query("created_at", description="Поле сортировки"),
     order: Optional[str] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1, description="Номер страницы"),
     page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),
 ):
     return {
         "parcel_id": parcel_id,
-        "cargo_type": cargo_type,
+        "cargo_type_id": cargo_type_id,
         "sort_by": sort_by,
         "order": order,
         "page": page,

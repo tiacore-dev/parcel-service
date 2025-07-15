@@ -8,6 +8,7 @@ from tiacore_lib.routes.role_route import role_router
 from tiacore_lib.routes.user_route import user_router
 
 from .arrival_warehouse_route import arrival_to_warehouse_router
+from .cargo_type_route import cargo_type_router
 from .delivery_route import delivery_router
 from .issue_to_employee import issue_to_employee_router
 from .parcel_cargo_route import parcel_cargo_router
@@ -31,15 +32,10 @@ def register_routes(app: FastAPI):
     app.include_router(role_router, prefix="/api/roles", tags=["Roles"])
 
     app.include_router(parcel_router, prefix="/api/parcels", tags=["Parcels"])
-    app.include_router(
-        parcel_cargo_router, prefix="/api/parcel-cargo", tags=["ParcelCargo"]
-    )
-    app.include_router(
-        parcel_product_router, prefix="/api/parcel-products", tags=["ParcelProducts"]
-    )
-    app.include_router(
-        parcel_status_router, prefix="/api/parcel-status", tags=["ParcelStatus"]
-    )
+    app.include_router(parcel_cargo_router, prefix="/api/parcel-cargo", tags=["ParcelCargo"])
+    app.include_router(cargo_type_router, prefix="/api/cargo-types", tags=["CargoTypes"])
+    app.include_router(parcel_product_router, prefix="/api/parcel-products", tags=["ParcelProducts"])
+    app.include_router(parcel_status_router, prefix="/api/parcel-status", tags=["ParcelStatus"])
     app.include_router(status_router, prefix="/api/statuses", tags=["StatusEnum"])
     app.include_router(
         pickup_router,
@@ -63,6 +59,4 @@ def register_routes(app: FastAPI):
         tags=["IssueToEmployee"],
     )
     app.include_router(transit_router, prefix="/api/transit", tags=["Transit"])
-    app.include_router(
-        transit_details_router, prefix="/api/transit-details", tags=["TransitDetails"]
-    )
+    app.include_router(transit_details_router, prefix="/api/transit-details", tags=["TransitDetails"])

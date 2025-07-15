@@ -151,10 +151,10 @@ async def get_parcel_cargo(
     if filters.get("parcel_id"):
         query &= Q(parcel_id=filters["parcel_id"])
 
-    if filters.get("cargo_type"):
-        query &= Q(cargo_type__icontains=filters["cargo_type"])
+    if filters.get("cargo_type_id"):
+        query &= Q(cargo_type_id=filters["cargo_type_id"])
 
-    sort_by = filters.get("sort_by", "cargo_type")
+    sort_by = filters.get("sort_by", "created_at")
     order = filters.get("order", "asc").lower()
     sort_field = sort_by if order == "asc" else f"-{sort_by}"
     page = filters.get("page", 1)

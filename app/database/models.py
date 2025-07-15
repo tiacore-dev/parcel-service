@@ -88,16 +88,30 @@ class Parcel(Model):
         table = "parcels"
 
 
+class CargoType(Model):
+    id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    name = fields.CharField(max_length=100)
+    company_id = fields.UUIDField()
+
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
+    modified_at = fields.DatetimeField(auto_now=True)
+    modified_by = fields.UUIDField()
+
+    class Meta:
+        table = "cargo_type"
+
+
 class ParcelCargo(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
     parcel = fields.ForeignKeyField("models.Parcel", related_name="parcel_cargo")
+    cargo_type = fields.ForeignKeyField("models.CargoType", related_name="parcel_cargo", null=True)
     weight = fields.DecimalField(max_digits=10, decimal_places=2)
     length = fields.DecimalField(max_digits=10, decimal_places=2)
     height = fields.DecimalField(max_digits=10, decimal_places=2)
     width = fields.DecimalField(max_digits=10, decimal_places=2)
     volume = fields.DecimalField(max_digits=10, decimal_places=9)
     quantity = fields.IntField()
-    cargo_type = fields.CharField(max_length=100)
     total_weight = fields.DecimalField(max_digits=10, decimal_places=2)
     total_volume = fields.DecimalField(max_digits=10, decimal_places=9)
     comment = fields.TextField(null=True)
