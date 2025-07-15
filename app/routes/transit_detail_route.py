@@ -33,14 +33,16 @@ transit_details_router = APIRouter()
 )
 async def add_transit_details(
     data: TransitDetailsCreateSchema,
-    _: dict = Depends(require_permission_in_context("add_transit_details")),
+    context: dict = Depends(require_permission_in_context("add_transit_details")),
 ):
     transit = await Transit.get_or_none(id=data.transit_id)
     if not transit:
         raise HTTPException(status_code=400, detail="Транзита не существует")
     await validate_exists(Parcel, data.parcel_id, "Накладная")
 
-    detail = await TransitDetails.create(**data.model_dump())
+    detail = await TransitDetails.create(
+        created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump()
+    )
     await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=transit.id,
@@ -49,6 +51,7 @@ async def add_transit_details(
         value=transit.warehouse_to_id,
         value_type="warehouse_id",
         date=transit.date,
+        created_by=context["user_id"],
     )
     await recalculate_parcel_status(data.parcel_id)
     return TransitDetailsResponseSchema(details_id=detail.id)
@@ -112,7 +115,7 @@ async def get_transit_details(
 async def edit_transit_details(
     details_id: UUID,
     data: TransitDetailsEditSchema,
-    _: dict = Depends(require_permission_in_context("edit_transit_details")),
+    context: dict = Depends(require_permission_in_context("edit_transit_details")),
 ):
     detail = await TransitDetails.filter(id=details_id).prefetch_related("parcel", "transit").first()
 
@@ -120,6 +123,7 @@ async def edit_transit_details(
         raise HTTPException(status_code=404, detail="Деталь транзита не найдена")
 
     await detail.update_from_dict(data.model_dump(exclude_unset=True))
+    detail.modified_by = context["user_id"]
     await detail.save()
     await recalculate_parcel_status(detail.parcel.id)
     await ParcelStatus.create(
@@ -130,6 +134,7 @@ async def edit_transit_details(
         value=detail.transit.warehouse_to_id,
         value_type="warehouse_id",
         date=detail.transit.date,
+        created_by=context["user_id"],
     )
     await recalculate_parcel_status(detail.parcel.id)
     return TransitDetailsResponseSchema(details_id=detail.id)

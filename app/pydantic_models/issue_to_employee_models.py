@@ -37,6 +37,11 @@ class IssueToEmployeeSchema(BaseModel):
     date: datetime
     parcel_id: UUID
 
+    created_at: datetime = Field(...)
+    created_by: UUID = Field(...)
+    modified_at: datetime = Field(...)
+    modified_by: UUID = Field(...)
+
     class Config:
         from_attributes = True
         populate_by_name = True

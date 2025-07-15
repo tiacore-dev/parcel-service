@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -53,6 +54,11 @@ class ParcelCargoSchema(BaseModel):
     total_weight: float
     total_volume: float
     comment: Optional[str] = None
+
+    created_at: datetime = Field(...)
+    created_by: UUID = Field(...)
+    modified_at: datetime = Field(...)
+    modified_by: UUID = Field(...)
 
     class Config:
         from_attributes = True

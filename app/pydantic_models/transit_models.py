@@ -37,6 +37,11 @@ class TransitSchema(BaseModel):
     warehouse_to_id: UUID
     date: datetime
 
+    created_at: datetime = Field(...)
+    created_by: UUID = Field(...)
+    modified_at: datetime = Field(...)
+    modified_by: UUID = Field(...)
+
     class Config:
         from_attributes = True
         populate_by_name = True
@@ -52,12 +57,8 @@ class TransitListResponseSchema(BaseModel):
 
 
 def transit_filter_params(
-    warehouse_from_id: Optional[UUID] = Query(
-        None, description="Фильтр по складу отправления"
-    ),
-    warehouse_to_id: Optional[UUID] = Query(
-        None, description="Фильтр по складу назначения"
-    ),
+    warehouse_from_id: Optional[UUID] = Query(None, description="Фильтр по складу отправления"),
+    warehouse_to_id: Optional[UUID] = Query(None, description="Фильтр по складу назначения"),
     date_from: Optional[datetime] = Query(None, description="Дата от (включительно)"),
     date_to: Optional[datetime] = Query(None, description="Дата до (включительно)"),
     sort_by: Optional[str] = Query("date", description="Поле для сортировки"),

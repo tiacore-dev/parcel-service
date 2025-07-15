@@ -6,7 +6,7 @@ from app.database.models import ParcelProduct
 
 
 @pytest.fixture
-async def seed_parcel_product(seed_parcel):
+async def seed_parcel_product(seed_user, seed_parcel):
     product = await ParcelProduct.create(
         parcel=seed_parcel,
         name="Тестовый товар",
@@ -16,5 +16,7 @@ async def seed_parcel_product(seed_parcel):
         article_number="ART-456",
         delivered=False,
         serial_number="SERIAL-456",
+        created_by=seed_user,
+        modified_by=seed_user,
     )
     return product

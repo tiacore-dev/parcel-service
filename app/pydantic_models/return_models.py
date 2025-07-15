@@ -43,6 +43,11 @@ class ReturnToSenderSchema(BaseModel):
     parcel_id: UUID
     sender_name: str
 
+    created_at: datetime = Field(...)
+    created_by: UUID = Field(...)
+    modified_at: datetime = Field(...)
+    modified_by: UUID = Field(...)
+
     class Config:
         from_attributes = True
         populate_by_name = True

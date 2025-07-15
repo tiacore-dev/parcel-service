@@ -25,9 +25,9 @@ transit_router = APIRouter()
 )
 async def add_transit(
     data: TransitCreateSchema,
-    _: dict = Depends(require_permission_in_context("add_transit")),
+    context: dict = Depends(require_permission_in_context("add_transit")),
 ):
-    transit = await Transit.create(**data.model_dump())
+    transit = await Transit.create(created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump())
 
     return TransitResponseSchema(transit_id=transit.id)
 
@@ -63,15 +63,11 @@ async def get_transit_list(
     offset = (page - 1) * page_size
 
     total_count = await Transit.filter(query).count()
-    transits = (
-        await Transit.filter(query).order_by(sort_field).offset(offset).limit(page_size)
-    )
+    transits = await Transit.filter(query).order_by(sort_field).offset(offset).limit(page_size)
 
     return TransitListResponseSchema(
         total=total_count,
-        transits=[
-            TransitSchema.model_validate(obj, from_attributes=True) for obj in transits
-        ],
+        transits=[TransitSchema.model_validate(obj, from_attributes=True) for obj in transits],
     )
 
 
@@ -100,7 +96,7 @@ async def get_transit(
 async def edit_transit(
     transit_id: UUID,
     data: TransitEditSchema,
-    _: dict = Depends(require_permission_in_context("edit_transit")),
+    context: dict = Depends(require_permission_in_context("edit_transit")),
 ):
     transit = await Transit.filter(id=transit_id).first()
 
@@ -108,6 +104,7 @@ async def edit_transit(
         raise HTTPException(status_code=404, detail="Транзит не найден")
 
     await transit.update_from_dict(data.model_dump(exclude_unset=True))
+    transit.modified_by = context["user_id"]
     await transit.save()
 
     return TransitResponseSchema(transit_id=transit.id)

@@ -27,10 +27,12 @@ issue_to_employee_router = APIRouter()
 )
 async def add_issue_to_employee(
     data: IssueToEmployeeCreateSchema,
-    _: dict = Depends(require_permission_in_context("add_issue_to_employee")),
+    context: dict = Depends(require_permission_in_context("add_issue_to_employee")),
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
-    issue = await IssueToEmployee.create(**data.model_dump())
+    issue = await IssueToEmployee.create(
+        created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump()
+    )
     await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=issue.id,
@@ -39,6 +41,7 @@ async def add_issue_to_employee(
         date=data.date,
         value=data.employee_id,
         value_type="user_id",
+        created_by=context["user_id"],
     )
     await recalculate_parcel_status(data.parcel_id)
     return IssueToEmployeeResponseSchema(issue_id=issue.id)
@@ -108,7 +111,7 @@ async def get_issue_to_employee(
 async def edit_issue_to_employee(
     issue_id: UUID,
     data: IssueToEmployeeEditSchema,
-    _: dict = Depends(require_permission_in_context("edit_issue_to_employee")),
+    context: dict = Depends(require_permission_in_context("edit_issue_to_employee")),
 ):
     issue = await IssueToEmployee.filter(id=issue_id).prefetch_related("parcel").first()
 
@@ -116,6 +119,7 @@ async def edit_issue_to_employee(
         raise HTTPException(status_code=404, detail="Событие не найдено")
 
     await issue.update_from_dict(data.model_dump(exclude_unset=True))
+    issue.modified_by = context["user_id"]
     await issue.save()
     await ParcelStatus.filter(document_id=issue_id).delete()
     await ParcelStatus.create(
@@ -126,6 +130,7 @@ async def edit_issue_to_employee(
         date=issue.date,
         value=issue.employee_id,
         value_type="user_id",
+        created_by=context["user_id"],
     )
     await recalculate_parcel_status(issue.parcel.id)
 

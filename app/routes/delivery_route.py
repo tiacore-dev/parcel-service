@@ -32,16 +32,19 @@ delivery_router = APIRouter()
 )
 async def add_delivery_to_recipient(
     data: DeliveryToRecipientCreateSchema,
-    _: dict = Depends(require_permission_in_context("add_delivery_to_recipient")),
+    context: dict = Depends(require_permission_in_context("add_delivery_to_recipient")),
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
-    delivery = await DeliveryToRecipient.create(**data.model_dump())
+    delivery = await DeliveryToRecipient.create(
+        created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump()
+    )
     await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=delivery.id,
         document_type="delivery_id",
         status=ParcelStatusEnum.DELIVERED,
         date=data.date,
+        created_by=context["user_id"],
     )
     await recalculate_parcel_status(data.parcel_id)
     return DeliveryToRecipientResponseSchema(delivery_id=delivery.id)
@@ -117,7 +120,7 @@ async def get_delivery_to_recipient(
 async def edit_delivery_to_recipient(
     delivery_id: UUID,
     data: DeliveryToRecipientEditSchema,
-    _: dict = Depends(require_permission_in_context("edit_delivery_to_recipient")),
+    context: dict = Depends(require_permission_in_context("edit_delivery_to_recipient")),
 ):
     delivery = await DeliveryToRecipient.filter(id=delivery_id).prefetch_related("parcel").first()
 
@@ -125,6 +128,7 @@ async def edit_delivery_to_recipient(
         raise HTTPException(status_code=404, detail="Событие не найдено")
 
     await delivery.update_from_dict(data.model_dump(exclude_unset=True))
+    delivery.modified_by = context["user_id"]
     await delivery.save()
     await ParcelStatus.filter(document_id=delivery_id).delete()
     await ParcelStatus.create(
@@ -133,6 +137,7 @@ async def edit_delivery_to_recipient(
         document_type="delivery_id",
         status=ParcelStatusEnum.DELIVERED,
         date=delivery.date,
+        created_by=context["user_id"],
     )
     await recalculate_parcel_status(delivery.parcel.id)
 

@@ -79,6 +79,11 @@ class Parcel(Model):
     volume = fields.DecimalField(max_digits=10, decimal_places=9)
     places_count = fields.IntField()
 
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
+    modified_at = fields.DatetimeField(auto_now=True)
+    modified_by = fields.UUIDField()
+
     class Meta:
         table = "parcels"
 
@@ -97,6 +102,11 @@ class ParcelCargo(Model):
     total_volume = fields.DecimalField(max_digits=10, decimal_places=9)
     comment = fields.TextField(null=True)
 
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
+    modified_at = fields.DatetimeField(auto_now=True)
+    modified_by = fields.UUIDField()
+
     class Meta:
         table = "parcel_cargo"
 
@@ -111,6 +121,11 @@ class ParcelProduct(Model):
     article_number = fields.TextField()
     delivered = fields.BooleanField(default=False)
     serial_number = fields.TextField()
+
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
+    modified_at = fields.DatetimeField(auto_now=True)
+    modified_by = fields.UUIDField()
 
     class Meta:
         table = "parcel_products"
@@ -130,6 +145,9 @@ class ParcelStatus(Model):
     value_type = fields.CharField(max_length=255, null=True)
     date = fields.DateField()
     comment = fields.TextField(null=True)
+
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
 
     def to_cache_dict(self):
         return {
@@ -155,6 +173,11 @@ class PickupFromSender(Model):
     parcel = fields.ForeignKeyField("models.Parcel", related_name="pickup_events")
     sender_name = fields.CharField(max_length=255)
 
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
+    modified_at = fields.DatetimeField(auto_now=True)
+    modified_by = fields.UUIDField()
+
     class Meta:
         table = "pickup_from_sender"
 
@@ -166,6 +189,11 @@ class DeliveryToRecipient(Model):
     date = fields.DatetimeField()
     parcel = fields.ForeignKeyField("models.Parcel", related_name="delivery_events")
     recipient_name = fields.CharField(max_length=255)
+
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
+    modified_at = fields.DatetimeField(auto_now=True)
+    modified_by = fields.UUIDField()
 
     class Meta:
         table = "delivery_to_recipient"
@@ -179,6 +207,11 @@ class ReturnToSender(Model):
     parcel = fields.ForeignKeyField("models.Parcel", related_name="return_events")
     sender_name = fields.CharField(max_length=255)
 
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
+    modified_at = fields.DatetimeField(auto_now=True)
+    modified_by = fields.UUIDField()
+
     class Meta:
         table = "return_to_sender"
 
@@ -188,6 +221,11 @@ class ArrivalToWarehouse(Model):
     warehouse_id = fields.UUIDField()
     date = fields.DatetimeField()
     parcel = fields.ForeignKeyField("models.Parcel", related_name="arrival_events")
+
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
+    modified_at = fields.DatetimeField(auto_now=True)
+    modified_by = fields.UUIDField()
 
     class Meta:
         table = "arrival_to_warehouse"
@@ -199,6 +237,11 @@ class IssueToEmployee(Model):
     date = fields.DatetimeField()
     parcel = fields.ForeignKeyField("models.Parcel", related_name="issue_events")
 
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
+    modified_at = fields.DatetimeField(auto_now=True)
+    modified_by = fields.UUIDField()
+
     class Meta:
         table = "issue_to_employee"
 
@@ -209,6 +252,11 @@ class Transit(Model):
     warehouse_to_id = fields.UUIDField()
     date = fields.DatetimeField()
 
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
+    modified_at = fields.DatetimeField(auto_now=True)
+    modified_by = fields.UUIDField()
+
     class Meta:
         table = "transit"
 
@@ -217,6 +265,11 @@ class TransitDetails(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
     transit = fields.ForeignKeyField("models.Transit", related_name="details")
     parcel = fields.ForeignKeyField("models.Parcel", related_name="transit_details")
+
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
+    modified_at = fields.DatetimeField(auto_now=True)
+    modified_by = fields.UUIDField()
 
     class Meta:
         table = "transit_details"

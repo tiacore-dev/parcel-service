@@ -29,12 +29,12 @@ parcel_router = APIRouter()
 )
 async def add_parcel(
     data: ParcelCreateSchema,
-    _=Depends(require_permission_in_context("add_parcel")),
+    context=Depends(require_permission_in_context("add_parcel")),
 ):
     create_data = data.model_dump()
     if not data.name:
         create_data["name"] = await generate_parcel_name()
-    parcel = await Parcel.create(**create_data)
+    parcel = await Parcel.create(created_by=context["user_id"], modified_by=context["user_id"], **create_data)
 
     return ParcelResponseSchema(parcel_id=parcel.id)
 
@@ -47,13 +47,14 @@ async def add_parcel(
 async def edit_parcel(
     parcel_id: UUID,
     data: ParcelEditSchema,
-    _: dict = Depends(require_permission_in_context("delete_parcel")),
+    context: dict = Depends(require_permission_in_context("delete_parcel")),
 ):
     parcel = await Parcel.get_or_none(id=parcel_id)
     if not parcel:
         raise HTTPException(status_code=404, detail="")
 
     await parcel.update_from_dict(data.model_dump(exclude_unset=True))
+    parcel.modified_by = context["user_id"]
     await parcel.save()
 
     return ParcelResponseSchema(parcel_id=parcel.id)

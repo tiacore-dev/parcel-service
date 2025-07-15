@@ -27,7 +27,7 @@ MILLION = 1000000
 )
 async def add_parcel_cargo(
     data: ParcelCargoCreateSchema,
-    _: dict = Depends(require_permission_in_context("add_parcel_cargo")),
+    context: dict = Depends(require_permission_in_context("add_parcel_cargo")),
 ):
     parcel = await Parcel.get_or_none(id=data.parcel_id)
     if not parcel:
@@ -46,7 +46,7 @@ async def add_parcel_cargo(
         }
     )
 
-    cargo = await ParcelCargo.create(**create_data)
+    cargo = await ParcelCargo.create(created_by=context["user_id"], modified_by=context["user_id"], **create_data)
     parcel.places_count += cargo.quantity
     parcel.volume += cargo.total_volume
     parcel.weight += cargo.total_weight
@@ -63,7 +63,7 @@ async def add_parcel_cargo(
 async def edit_parcel_cargo(
     cargo_id: UUID,
     data: ParcelCargoEditSchema,
-    _: dict = Depends(require_permission_in_context("edit_parcel_cargo")),
+    context: dict = Depends(require_permission_in_context("edit_parcel_cargo")),
 ):
     cargo = await ParcelCargo.filter(id=cargo_id).prefetch_related("parcel").first()
 
@@ -107,6 +107,7 @@ async def edit_parcel_cargo(
         await parcel.save()
 
     await cargo.update_from_dict(update_data)
+    cargo.modified_by = context["user_id"]
     await cargo.save()
 
     return ParcelCargoResponseSchema(cargo_id=cargo.id)

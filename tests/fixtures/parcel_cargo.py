@@ -6,7 +6,7 @@ from app.database.models import Parcel, ParcelCargo
 
 
 @pytest.fixture
-async def seed_parcel_cargo(seed_parcel: Parcel):
+async def seed_parcel_cargo(seed_user, seed_parcel: Parcel):
     cargo = await ParcelCargo.create(
         parcel=seed_parcel,
         weight=Decimal("10.5"),
@@ -19,5 +19,7 @@ async def seed_parcel_cargo(seed_parcel: Parcel):
         total_weight=Decimal("21.0"),
         total_volume=Decimal("9.0"),
         comment="Тестовый груз",
+        created_by=seed_user,
+        modified_by=seed_user,
     )
     return cargo

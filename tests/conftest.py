@@ -67,3 +67,17 @@ async def jwt_token_admin(test_settings):
         "access_token": create_access_token(token_data, test_settings),
         "refresh_token": create_refresh_token(token_data, test_settings),
     }
+
+
+@pytest.fixture(scope="function")
+@pytest.mark.asyncio
+async def seed_company():
+    company_id = uuid4()
+    return company_id
+
+
+@pytest.fixture(scope="function")
+@pytest.mark.asyncio
+async def seed_user():
+    user_id = uuid4()
+    return user_id

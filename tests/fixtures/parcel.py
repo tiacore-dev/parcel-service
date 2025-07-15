@@ -7,13 +7,13 @@ from app.database.models import DeliveryType, Parcel
 
 
 @pytest.fixture
-async def seed_parcel():
+async def seed_parcel(seed_company, seed_user):
     now = datetime.now()
     time_from = now.time()
     time_to = (now + timedelta(hours=2)).time()  # например, +2 часа
 
     parcel = await Parcel.create(
-        company_id=uuid4(),
+        company_id=seed_company,
         name="00001",
         sender_city=uuid4(),
         sender_address="ул. Тестовая, д.1",
@@ -36,5 +36,7 @@ async def seed_parcel():
         weight=0.0,
         volume=0.0,
         places_count=0,
+        created_by=seed_user,
+        modified_by=seed_user,
     )
     return parcel

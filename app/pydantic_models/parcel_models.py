@@ -1,5 +1,5 @@
 import re
-from datetime import date, time
+from datetime import date, datetime, time
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -72,12 +72,6 @@ class ParcelCreateSchema(BaseModel):
     def validate_telegram(cls, v):
         if v is not None and not TELEGRAM_REGEX.match(v):
             raise ValueError("Телеграм должен быть в формате @username (латиница, цифры, _)")
-        return v
-
-    @field_validator("sender_timezone", "recipient_timezone")
-    def validate_timezone(cls, v):
-        if v not in IANA_TIMEZONES:
-            raise ValueError(f"Некорректная таймзона: {v}")
         return v
 
     @field_validator("pickup_time_to")
@@ -158,12 +152,6 @@ class ParcelEditSchema(BaseModel):
             raise ValueError("Телеграм должен быть в формате @username (латиница, цифры, _)")
         return v
 
-    @field_validator("sender_timezone", "recipient_timezone")
-    def validate_timezone(cls, v):
-        if v not in IANA_TIMEZONES:
-            raise ValueError(f"Некорректная таймзона: {v}")
-        return v
-
     @field_validator("pickup_time_to")
     def validate_pickup_time_range(cls, to_val, info):
         data = info.data
@@ -239,6 +227,11 @@ class ParcelSchema(BaseModel):
     volume: float
     places_count: int
 
+    created_at: datetime = Field(...)
+    created_by: UUID = Field(...)
+    modified_at: datetime = Field(...)
+    modified_by: UUID = Field(...)
+
     class Config:
         from_attributes = True
         populate_by_name = True
@@ -260,6 +253,7 @@ class ParcelCurrentStatusSchema(BaseModel):
     status: ParcelStatusEnum
     value: Optional[UUID] = Field(None)
     value_type: Optional[str] = Field(None)
+    date: datetime
     comment: Optional[str] = None
 
     class Config:

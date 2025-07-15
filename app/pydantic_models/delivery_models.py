@@ -43,6 +43,11 @@ class DeliveryToRecipientSchema(BaseModel):
     parcel_id: UUID
     recipient_name: str
 
+    created_at: datetime = Field(...)
+    created_by: UUID = Field(...)
+    modified_at: datetime = Field(...)
+    modified_by: UUID = Field(...)
+
     class Config:
         from_attributes = True
         populate_by_name = True
@@ -63,9 +68,7 @@ def delivery_to_recipient_filter_params(
     employee_id: Optional[UUID] = Query(None, description="Фильтр по ID сотрудника"),
     date_from: Optional[datetime] = Query(None, description="Дата от (включительно)"),
     date_to: Optional[datetime] = Query(None, description="Дата до (включительно)"),
-    recipient_name: Optional[str] = Query(
-        None, description="Фильтр по имени получателя"
-    ),
+    recipient_name: Optional[str] = Query(None, description="Фильтр по имени получателя"),
     sort_by: Optional[str] = Query("date", description="Поле для сортировки"),
     order: Optional[str] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1, description="Номер страницы"),

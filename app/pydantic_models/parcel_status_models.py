@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
@@ -42,7 +43,11 @@ class ParcelStatusSchema(BaseModel):
     status: ParcelStatusEnum
     value: Optional[UUID] = Field(None)
     value_type: Optional[str] = Field(None)
+    date: datetime
     comment: Optional[str] = Field(None)
+
+    created_at: datetime = Field(...)
+    created_by: UUID = Field(...)
 
     class Config:
         from_attributes = True

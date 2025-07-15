@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
@@ -32,6 +33,11 @@ class TransitDetailsSchema(BaseModel):
     id: UUID = Field(..., alias="details_id")
     transit_id: UUID
     parcel_id: UUID
+
+    created_at: datetime = Field(...)
+    created_by: UUID = Field(...)
+    modified_at: datetime = Field(...)
+    modified_by: UUID = Field(...)
 
     class Config:
         from_attributes = True

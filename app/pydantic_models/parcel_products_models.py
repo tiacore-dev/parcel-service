@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
@@ -21,12 +22,8 @@ class ParcelProductCreateSchema(BaseModel):
 
 class ParcelProductEditSchema(BaseModel):
     name: Optional[str] = None
-    price: Optional[Decimal] = Field(
-        None, ge=0.01, description="Цена должна быть больше 0"
-    )
-    quantity: Optional[int] = Field(
-        None, ge=1, description="Количество должно быть минимум 1"
-    )
+    price: Optional[Decimal] = Field(None, ge=0.01, description="Цена должна быть больше 0")
+    quantity: Optional[int] = Field(None, ge=1, description="Количество должно быть минимум 1")
     article_number: Optional[str] = None
     delivered: Optional[bool] = None
     serial_number: Optional[str] = None
@@ -52,6 +49,11 @@ class ParcelProductSchema(BaseModel):
     article_number: str
     delivered: bool
     serial_number: str
+
+    created_at: datetime = Field(...)
+    created_by: UUID = Field(...)
+    modified_at: datetime = Field(...)
+    modified_by: UUID = Field(...)
 
     class Config:
         from_attributes = True

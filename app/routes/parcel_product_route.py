@@ -26,12 +26,12 @@ parcel_product_router = APIRouter()
 )
 async def add_parcel_product(
     data: ParcelProductCreateSchema,
-    _: dict = Depends(require_permission_in_context("add_parcel_product")),
+    context: dict = Depends(require_permission_in_context("add_parcel_product")),
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
     create_data = data.model_dump()
     create_data["summ"] = create_data["quantity"] * create_data["price"]
-    product = await ParcelProduct.create(**create_data)
+    product = await ParcelProduct.create(created_by=context["user_id"], modified_by=context["user_id"], **create_data)
     return ParcelProductResponseSchema(product_id=product.id)
 
 
@@ -43,7 +43,7 @@ async def add_parcel_product(
 async def edit_parcel_product(
     product_id: UUID,
     data: ParcelProductEditSchema,
-    _: dict = Depends(require_permission_in_context("edit_parcel_product")),
+    context: dict = Depends(require_permission_in_context("edit_parcel_product")),
 ):
     product = await ParcelProduct.filter(id=product_id).first()
 
@@ -56,6 +56,7 @@ async def edit_parcel_product(
         update_data["summ"] = quantity * price
 
     await product.update_from_dict(update_data)
+    product.modified_by = context["user_id"]
     await product.save()
 
     return ParcelProductResponseSchema(product_id=product.id)
@@ -107,19 +108,11 @@ async def get_parcel_products(
     offset = (page - 1) * page_size
 
     total_count = await ParcelProduct.filter(query).count()
-    products = (
-        await ParcelProduct.filter(query)
-        .order_by(sort_field)
-        .offset(offset)
-        .limit(page_size)
-    )
+    products = await ParcelProduct.filter(query).order_by(sort_field).offset(offset).limit(page_size)
 
     return ParcelProductListResponseSchema(
         total=total_count,
-        products=[
-            ParcelProductSchema.model_validate(obj, from_attributes=True)
-            for obj in products
-        ],
+        products=[ParcelProductSchema.model_validate(obj, from_attributes=True) for obj in products],
     )
 
 

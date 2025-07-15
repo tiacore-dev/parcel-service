@@ -27,16 +27,19 @@ return_router = APIRouter()
 )
 async def add_return_to_sender(
     data: ReturnToSenderCreateSchema,
-    _: dict = Depends(require_permission_in_context("add_return_to_sender")),
+    context: dict = Depends(require_permission_in_context("add_return_to_sender")),
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
-    return_obj = await ReturnToSender.create(**data.model_dump())
+    return_obj = await ReturnToSender.create(
+        created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump()
+    )
     await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=return_obj.id,
         document_type="return_id",
         status=ParcelStatusEnum.RETURNED,
         date=data.date,
+        created_by=context["user_id"],
     )
     await recalculate_parcel_status(data.parcel_id)
     return ReturnToSenderResponseSchema(return_id=return_obj.id)
@@ -112,7 +115,7 @@ async def get_return_to_sender(
 async def edit_return_to_sender(
     return_id: UUID,
     data: ReturnToSenderEditSchema,
-    _: dict = Depends(require_permission_in_context("edit_return_to_sender")),
+    context: dict = Depends(require_permission_in_context("edit_return_to_sender")),
 ):
     return_obj = await ReturnToSender.filter(id=return_id).prefetch_related("parcel").first()
 
@@ -120,6 +123,7 @@ async def edit_return_to_sender(
         raise HTTPException(status_code=404, detail="Событие не найдено")
 
     await return_obj.update_from_dict(data.model_dump(exclude_unset=True))
+    return_obj.modified_by = context["user_id"]
     await return_obj.save()
     await ParcelStatus.filter(document_id=return_id).delete()
     await ParcelStatus.create(
@@ -128,6 +132,7 @@ async def edit_return_to_sender(
         document_type="return_id",
         status=ParcelStatusEnum.RETURNED,
         date=return_obj.date,
+        created_by=context["user_id"],
     )
     await recalculate_parcel_status(return_obj.parcel.id)
 

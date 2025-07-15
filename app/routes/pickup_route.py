@@ -27,10 +27,12 @@ pickup_router = APIRouter()
 )
 async def add_pickup_from_sender(
     data: PickupFromSenderCreateSchema,
-    _: dict = Depends(require_permission_in_context("add_pickup_from_sender")),
+    context: dict = Depends(require_permission_in_context("add_pickup_from_sender")),
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
-    pickup = await PickupFromSender.create(**data.model_dump())
+    pickup = await PickupFromSender.create(
+        created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump()
+    )
     if data.warehouse_id:
         await ParcelStatus.create(
             parcel_id=data.parcel_id,
@@ -40,6 +42,7 @@ async def add_pickup_from_sender(
             date=data.date,
             value=data.warehouse_id,
             value_type="warehouse_id",
+            created_by=context["user_id"],
         )
     else:
         await ParcelStatus.create(
@@ -50,6 +53,7 @@ async def add_pickup_from_sender(
             date=data.date,
             value=data.employee_id,
             value_type="user_id",
+            created_by=context["user_id"],
         )
     await recalculate_parcel_status(data.parcel_id)
     return PickupFromSenderResponseSchema(pickup_id=pickup.id)
@@ -125,7 +129,7 @@ async def get_pickup_from_sender(
 async def edit_pickup_from_sender(
     pickup_id: UUID,
     data: PickupFromSenderEditSchema,
-    _: dict = Depends(require_permission_in_context("edit_pickup_from_sender")),
+    context: dict = Depends(require_permission_in_context("edit_pickup_from_sender")),
 ):
     pickup = await PickupFromSender.filter(id=pickup_id).prefetch_related("parcel").first()
 
@@ -133,6 +137,7 @@ async def edit_pickup_from_sender(
         raise HTTPException(status_code=404, detail="Событие не найдено")
 
     await pickup.update_from_dict(data.model_dump(exclude_unset=True))
+    pickup.modified_by = context["user_id"]
     await pickup.save()
     await ParcelStatus.filter(document_id=pickup_id).delete()
     if pickup.warehouse_id:
@@ -144,6 +149,7 @@ async def edit_pickup_from_sender(
             date=pickup.date,
             value=pickup.warehouse_id,
             value_type="warehouse_id",
+            created_by=context["user_id"],
         )
     else:
         await ParcelStatus.create(
@@ -154,6 +160,7 @@ async def edit_pickup_from_sender(
             date=pickup.date,
             value=pickup.employee_id,
             value_type="user_id",
+            created_by=context["user_id"],
         )
 
     await recalculate_parcel_status(pickup.parcel.id)

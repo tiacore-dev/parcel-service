@@ -32,10 +32,12 @@ arrival_to_warehouse_router = APIRouter()
 )
 async def add_arrival_to_warehouse(
     data: ArrivalToWarehouseCreateSchema,
-    _: dict = Depends(require_permission_in_context("add_arrival_to_warehouse")),
+    context: dict = Depends(require_permission_in_context("add_arrival_to_warehouse")),
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
-    arrival = await ArrivalToWarehouse.create(**data.model_dump())
+    arrival = await ArrivalToWarehouse.create(
+        created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump()
+    )
     await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=arrival.id,
@@ -44,6 +46,7 @@ async def add_arrival_to_warehouse(
         date=data.date,
         value=data.warehouse_id,
         value_type="warehouse_id",
+        created_by=context["user_id"],
     )
     await recalculate_parcel_status(data.parcel_id)
     return ArrivalToWarehouseResponseSchema(arrival_id=arrival.id)
@@ -113,7 +116,7 @@ async def get_arrival_to_warehouse(
 async def edit_arrival_to_warehouse(
     arrival_id: UUID,
     data: ArrivalToWarehouseEditSchema,
-    _: dict = Depends(require_permission_in_context("edit_arrival_to_warehouse")),
+    context: dict = Depends(require_permission_in_context("edit_arrival_to_warehouse")),
 ):
     arrival = await ArrivalToWarehouse.filter(id=arrival_id).prefetch_related("parcel").first()
 
@@ -121,6 +124,7 @@ async def edit_arrival_to_warehouse(
         raise HTTPException(status_code=404, detail="Событие не найдено")
 
     await arrival.update_from_dict(data.model_dump(exclude_unset=True))
+    arrival.modified_by = context["user_id"]
     await arrival.save()
     await ParcelStatus.filter(document_id=arrival_id).delete()
     await ParcelStatus.create(
@@ -131,6 +135,7 @@ async def edit_arrival_to_warehouse(
         date=arrival.date,
         value=arrival.warehouse_id,
         value_type="warehouse_id",
+        created_by=context["user_id"],
     )
     await recalculate_parcel_status(arrival.parcel.id)
     return ArrivalToWarehouseResponseSchema(arrival_id=arrival.id)
