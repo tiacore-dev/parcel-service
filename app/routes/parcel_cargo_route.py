@@ -16,7 +16,7 @@ from app.pydantic_models.parcel_cargo_models import (
 
 parcel_cargo_router = APIRouter()
 
-MILLION = 1000000000
+MILLION = 1000000
 
 
 @parcel_cargo_router.post(
@@ -161,18 +161,11 @@ async def get_parcel_cargo(
     offset = (page - 1) * page_size
 
     total_count = await ParcelCargo.filter(query).count()
-    cargo = (
-        await ParcelCargo.filter(query)
-        .order_by(sort_field)
-        .offset(offset)
-        .limit(page_size)
-    )
+    cargo = await ParcelCargo.filter(query).order_by(sort_field).offset(offset).limit(page_size)
 
     return ParcelCargoListResponseSchema(
         total=total_count,
-        cargo=[
-            ParcelCargoSchema.model_validate(obj, from_attributes=True) for obj in cargo
-        ],
+        cargo=[ParcelCargoSchema.model_validate(obj, from_attributes=True) for obj in cargo],
     )
 
 
