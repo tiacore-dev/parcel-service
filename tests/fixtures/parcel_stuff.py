@@ -14,6 +14,7 @@ from app.database.models import (
     ReturnToSender,
     Transit,
     TransitDetails,
+    TransitStatusEnum,
 )
 
 
@@ -155,6 +156,7 @@ async def seed_transit(
         date=datetime.now(),
         created_by=seed_user,
         modified_by=seed_user,
+        status=TransitStatusEnum.ON_THE_WAY,
     )
     return transit
 

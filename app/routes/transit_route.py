@@ -55,6 +55,9 @@ async def get_transit_list(
     if filters.get("date_to"):
         query &= Q(date__lte=filters["date_to"])
 
+    if filters.get("status"):
+        query &= Q(status=filters["status"])
+
     sort_by = filters.get("sort_by", "date")
     order = filters.get("order", "asc").lower()
     sort_field = sort_by if order == "asc" else f"-{sort_by}"

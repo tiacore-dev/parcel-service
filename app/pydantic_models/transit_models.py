@@ -5,11 +5,14 @@ from uuid import UUID
 from fastapi import Query
 from pydantic import BaseModel, Field
 
+from app.database.models import TransitStatusEnum
+
 
 class TransitCreateSchema(BaseModel):
     warehouse_from_id: UUID
     warehouse_to_id: UUID
     date: datetime
+    status: TransitStatusEnum
 
     class Config:
         from_attributes = True
@@ -19,6 +22,7 @@ class TransitEditSchema(BaseModel):
     warehouse_from_id: Optional[UUID] = None
     warehouse_to_id: Optional[UUID] = None
     date: Optional[datetime] = None
+    status: Optional[TransitStatusEnum] = None
 
     class Config:
         from_attributes = True
@@ -36,6 +40,7 @@ class TransitSchema(BaseModel):
     warehouse_from_id: UUID
     warehouse_to_id: UUID
     date: datetime
+    status: TransitStatusEnum
 
     created_at: datetime = Field(...)
     created_by: UUID = Field(...)
@@ -57,6 +62,7 @@ class TransitListResponseSchema(BaseModel):
 
 
 def transit_filter_params(
+    status: Optional[TransitStatusEnum] = Query(None, description="Фильтр по статусу транзита"),
     warehouse_from_id: Optional[UUID] = Query(None, description="Фильтр по складу отправления"),
     warehouse_to_id: Optional[UUID] = Query(None, description="Фильтр по складу назначения"),
     date_from: Optional[datetime] = Query(None, description="Дата от (включительно)"),
@@ -67,6 +73,7 @@ def transit_filter_params(
     page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),
 ):
     return {
+        "status": status,
         "warehouse_from_id": warehouse_from_id,
         "warehouse_to_id": warehouse_to_id,
         "date_from": date_from,

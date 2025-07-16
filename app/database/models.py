@@ -22,6 +22,23 @@ class ParcelStatusEnum(str, Enum):
         }[self.value]
 
 
+class TransitStatusEnum(str, Enum):
+    READY_FOR_LOAD = "ready_for_load"
+    READY_FOR_DEPARTURE = "ready_for_departure"
+    ON_THE_WAY = "on_the_way"
+    UNLOADED_AT_WAREHOUSE = "unloaded_at_warehouse"
+    FINISHED = "finished"
+
+    def label(self):
+        return {
+            "ready_for_load": "Готов к загрузке",
+            "ready_for_departure": "Готов к отправке",
+            "on_the_way": "В пути",
+            "unloaded_at_warehouse": "Выгружен на складе",
+            "finished": "Завершен",
+        }[self.value]
+
+
 class DeliveryType(str, Enum):
     DOOR = "door"
     WAREHOUSE = "warehouse"
@@ -265,6 +282,7 @@ class Transit(Model):
     warehouse_from_id = fields.UUIDField()
     warehouse_to_id = fields.UUIDField()
     date = fields.DatetimeField()
+    status = fields.CharEnumField(TransitStatusEnum)
 
     created_at = fields.DatetimeField(auto_now_add=True)
     created_by = fields.UUIDField()
