@@ -114,6 +114,19 @@ async def test_view_parcel(test_app: AsyncClient, jwt_token_admin, seed_parcel: 
 
 
 @pytest.mark.asyncio
+async def test_get_parcel_by_name(test_app: AsyncClient, jwt_token_admin, seed_parcel: Parcel):
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
+    query_params = {"parcel_name": seed_parcel.name}
+    response = await test_app.get("/api/parcels/by-number", headers=headers, params=query_params)
+    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
+
+    data = response.json()
+    assert data["parcel_id"] == str(seed_parcel.id)
+    assert data["sender_company"] == seed_parcel.sender_company
+    assert data["recipient_company"] == seed_parcel.recipient_company
+
+
+@pytest.mark.asyncio
 async def test_delete_parcel(test_app: AsyncClient, jwt_token_admin, seed_parcel: Parcel):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 

@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
 from tortoise.expressions import Q
 
@@ -150,6 +150,23 @@ async def get_parcel_status(
     if not data:
         return None
     return ParcelCurrentStatusSchema(**data)
+
+
+@parcel_router.get(
+    "/by-number",
+    response_model=ParcelSchema,
+    summary="Просмотр одной накладной",
+)
+async def get_parcel_by_number(
+    parcel_name: str = Query(..., description="Номер накладной"),
+    _: dict = Depends(require_permission_in_context("view_parcel")),
+):
+    parcel = await Parcel.filter(name=parcel_name).first()
+
+    if not parcel:
+        raise HTTPException(status_code=404, detail="Накладная не найдена")
+
+    return ParcelSchema.model_validate(parcel, from_attributes=True)
 
 
 @parcel_router.get(
