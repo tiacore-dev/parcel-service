@@ -39,6 +39,13 @@ class TransitDetailsSchema(BaseModel):
     modified_at: datetime = Field(...)
     modified_by: UUID = Field(...)
 
+    parcel_name: Optional[str] = Field(None)
+    places_count: Optional[int] = Field(None)
+    recipient_city: Optional[UUID] = Field(None)
+    volume: Optional[float] = Field(None)
+    weight: Optional[float] = Field(None)
+    recipient_additional_info: Optional[str] = Field(None)
+
     class Config:
         from_attributes = True
         populate_by_name = True

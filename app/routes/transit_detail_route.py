@@ -82,11 +82,35 @@ async def get_transit_details_list(
     offset = (page - 1) * page_size
 
     total_count = await TransitDetails.filter(query).count()
-    details = await TransitDetails.filter(query).order_by(sort_field).offset(offset).limit(page_size)
+    details = (
+        await TransitDetails.filter(query)
+        .order_by(sort_field)
+        .offset(offset)
+        .limit(page_size)
+        .prefetch_related("parcel")
+    )
+    detail_schemas = []
+    for detail in details:
+        parcel = await Parcel.get_or_none(id=detail.parcel.id)
+        if not parcel:
+            raise HTTPException(status_code=400, detail="Накладная не найдена")
+        parcel_data = {
+            "parcel_name": parcel.name,
+            "places_count": parcel.places_count,
+            "recipient_city": parcel.recipient_city,
+            "volume": parcel.volume,
+            "weight": parcel.weight,
+            "recipient_additional_info": parcel.recipient_additional_info,
+        }
+        detail_dict = detail.__dict__
+
+        combined_data = {**detail_dict, **parcel_data}
+
+        detail_schemas.append(TransitDetailsSchema.model_validate(combined_data))
 
     return TransitDetailsListResponseSchema(
         total=total_count,
-        details=[TransitDetailsSchema.model_validate(obj, from_attributes=True) for obj in details],
+        details=detail_schemas,
     )
 
 
