@@ -131,10 +131,17 @@ async def get_parcels(
     total_count = await Parcel.filter(query).count()
     parcels = await Parcel.filter(query).order_by(sort_field).offset(offset).limit(page_size)
 
-    return ParcelListResponseSchema(
-        total=total_count,
-        parcels=[ParcelSchema.model_validate(parcel, from_attributes=True) for parcel in parcels],
-    )
+    parcel_schemas = []
+    for parcel in parcels:
+        status_data = await get_cached_parcel_status_data(parcel.id)
+        status = status_data["status"] if status_data else None
+
+        parcel_dict = parcel.__dict__
+        parcel_dict["status"] = status
+
+        parcel_schemas.append(ParcelSchema.model_validate(parcel_dict))
+
+    return ParcelListResponseSchema(total=total_count, parcels=parcel_schemas)
 
 
 @parcel_router.get(
@@ -149,7 +156,7 @@ async def get_parcel_status(
     data = await get_cached_parcel_status_data(parcel_id=parcel_id)
     if not data:
         return None
-    return ParcelCurrentStatusSchema(**data)
+    return ParcelCurrentStatusSchema.model_validate(data)
 
 
 @parcel_router.get(
