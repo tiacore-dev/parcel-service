@@ -86,8 +86,6 @@ async def get_parcels(
     _: dict = Depends(require_permission_in_context("get_all_parcels")),
 ):
     query = Q()
-    if filters.get("parcel_name"):
-        query &= Q(name__icontains=filters["parcel_name"])
 
     if filters.get("sender_city"):
         query &= Q(sender_city=filters["sender_city"])
@@ -95,51 +93,30 @@ async def get_parcels(
     if filters.get("recipient_city"):
         query &= Q(recipient_city=filters["recipient_city"])
 
-    if filters.get("sender_warehouse"):
-        query &= Q(sender_warehouse=filters["sender_warehouse"])
-
-    if filters.get("recipient_warehouse"):
-        query &= Q(recipient_warehouse=filters["recipient_warehouse"])
-
     if filters.get("pickup_date_from"):
         query &= Q(pickup_estimated_date__gte=filters["pickup_date_from"])
 
     if filters.get("pickup_date_to"):
         query &= Q(pickup_estimated_date__lte=filters["pickup_date_to"])
 
-    if filters.get("delivery_date_from"):
-        query &= Q(delivery_estimated_date__gte=filters["delivery_date_from"])
-
-    if filters.get("delivery_date_to"):
-        query &= Q(delivery_estimated_date__lte=filters["delivery_date_to"])
-
-    if filters.get("min_weight"):
-        query &= Q(weight__gte=filters["min_weight"])
-
-    if filters.get("max_weight"):
-        query &= Q(weight__lte=filters["max_weight"])
-
-    if filters.get("min_volume"):
-        query &= Q(volume__gte=filters["min_volume"])
-
-    if filters.get("max_volume"):
-        query &= Q(volume__lte=filters["max_volume"])
-
-    if filters.get("sender_company"):
-        query &= Q(sender_company__icontains=filters["sender_company"])
-
-    if filters.get("recipient_company"):
-        query &= Q(recipient_company__icontains=filters["recipient_company"])
-
     if filters.get("company_id"):
         query &= Q(company_id=filters["company_id"])
 
     if filters.get("search"):
+        search = filters["search"]
         query &= (
-            Q(sender_address__icontains=filters["search"])
-            | Q(recipient_address__icontains=filters["search"])
-            | Q(sender_company__icontains=filters["search"])
-            | Q(recipient_company__icontains=filters["search"])
+            Q(sender_address__icontains=search)
+            | Q(recipient_address__icontains=search)
+            | Q(sender_company__icontains=search)
+            | Q(recipient_company__icontains=search)
+            | Q(sender_phone__icontains=search)
+            | Q(recipient_phone__icontains=search)
+            | Q(sender_email__icontains=search)
+            | Q(recipient_email__icontains=search)
+            | Q(sender_telegram__icontains=search)
+            | Q(recipient_telegram__icontains=search)
+            | Q(note__icontains=search)
+            | Q(name__icontains=search)
         )
 
     sort_by = filters.get("sort_by", "created_at")
