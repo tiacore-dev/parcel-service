@@ -127,7 +127,7 @@ jobs:
 
             cd $DEPLOY_PATH || { echo "❌ Не удалось перейти в $DEPLOY_PATH"; exit 1; }
 
-            
+            git pull origin \$DEPLOY_BRANCH || { echo "❌ git pull не удался"; exit 1; }
 
             echo "\$DOCKERHUB_TOKEN" | docker login -u "\$DOCKERHUB_USERNAME" --password-stdin \
               || { echo "❌ Docker login failed"; exit 1; }
