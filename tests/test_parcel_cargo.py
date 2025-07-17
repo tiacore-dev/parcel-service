@@ -77,7 +77,11 @@ async def test_delete_parcel_cargo(test_app: AsyncClient, jwt_token_admin, seed_
 
 
 @pytest.mark.asyncio
-async def test_get_parcel_cargo_list(test_app: AsyncClient, jwt_token_admin, seed_parcel_cargo: ParcelCargo):
+async def test_get_parcel_cargo_list(
+    test_app: AsyncClient,
+    jwt_token_admin,
+    seed_parcel_cargo: ParcelCargo,
+):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = await test_app.get("/api/parcel-cargo/all", headers=headers)

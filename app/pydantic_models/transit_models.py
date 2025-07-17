@@ -9,7 +9,7 @@ from app.database.models import TransitStatusEnum
 
 
 class TransitCreateSchema(BaseModel):
-    name: Optional[str] = Field(None, alias="transit_name")
+    name: Optional[str] = Field(None, alias="transit_name", max_length=10)
     warehouse_from_id: UUID
     warehouse_to_id: UUID
     date: datetime

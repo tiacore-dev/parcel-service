@@ -42,6 +42,7 @@ class DeliveryToRecipientSchema(BaseModel):
     date: datetime
     parcel_id: UUID
     recipient_name: str
+    parcel_name: Optional[str] = Field(None)
 
     created_at: datetime = Field(...)
     created_by: UUID = Field(...)

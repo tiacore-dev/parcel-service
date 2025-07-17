@@ -83,11 +83,27 @@ async def get_arrival_to_warehouse_list(
     offset = (page - 1) * page_size
 
     total_count = await ArrivalToWarehouse.filter(query).count()
-    arrivals = await ArrivalToWarehouse.filter(query).order_by(sort_field).offset(offset).limit(page_size)
-
+    arrivals = (
+        await ArrivalToWarehouse.filter(query)
+        .prefetch_related("parcel")
+        .order_by(sort_field)
+        .offset(offset)
+        .limit(page_size)
+    )
+    arrivals_data = [
+        ArrivalToWarehouseSchema.model_validate(
+            {
+                **arrival.__dict__,
+                "arrival_id": arrival.id,
+                "parcel_name": arrival.parcel.name if arrival.parcel else None,
+            },
+            from_attributes=True,
+        )
+        for arrival in arrivals
+    ]
     return ArrivalToWarehouseListResponseSchema(
         total=total_count,
-        arrivals=[ArrivalToWarehouseSchema.model_validate(obj, from_attributes=True) for obj in arrivals],
+        arrivals=arrivals_data,
     )
 
 

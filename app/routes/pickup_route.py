@@ -96,11 +96,28 @@ async def get_pickup_from_sender_list(
     offset = (page - 1) * page_size
 
     total_count = await PickupFromSender.filter(query).count()
-    pickups = await PickupFromSender.filter(query).order_by(sort_field).offset(offset).limit(page_size)
+    pickups = (
+        await PickupFromSender.filter(query)
+        .prefetch_related("parcel")
+        .order_by(sort_field)
+        .offset(offset)
+        .limit(page_size)
+    )
 
+    pickups_data = [
+        PickupFromSenderSchema.model_validate(
+            {
+                **pickup.__dict__,
+                "pickup_id": pickup.id,
+                "parcel_name": pickup.parcel.name if pickup.parcel else None,
+            },
+            from_attributes=True,
+        )
+        for pickup in pickups
+    ]
     return PickupFromSenderListResponseSchema(
         total=total_count,
-        pickups=[PickupFromSenderSchema.model_validate(obj, from_attributes=True) for obj in pickups],
+        pickups=pickups_data,
     )
 
 

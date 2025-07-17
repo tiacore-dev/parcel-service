@@ -78,11 +78,28 @@ async def get_issue_to_employee_list(
     offset = (page - 1) * page_size
 
     total_count = await IssueToEmployee.filter(query).count()
-    issues = await IssueToEmployee.filter(query).order_by(sort_field).offset(offset).limit(page_size)
+    issues = (
+        await IssueToEmployee.filter(query)
+        .prefetch_related("parcel")
+        .order_by(sort_field)
+        .offset(offset)
+        .limit(page_size)
+    )
 
+    issues_data = [
+        IssueToEmployeeSchema.model_validate(
+            {
+                **issue.__dict__,
+                "issue_id": issue.id,
+                "parcel_name": issue.parcel.name if issue.parcel else None,
+            },
+            from_attributes=True,
+        )
+        for issue in issues
+    ]
     return IssueToEmployeeListResponseSchema(
         total=total_count,
-        issues=[IssueToEmployeeSchema.model_validate(obj, from_attributes=True) for obj in issues],
+        issues=issues_data,
     )
 
 

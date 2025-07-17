@@ -82,11 +82,28 @@ async def get_return_to_sender_list(
     offset = (page - 1) * page_size
 
     total_count = await ReturnToSender.filter(query).count()
-    returns = await ReturnToSender.filter(query).order_by(sort_field).offset(offset).limit(page_size)
+    returns = (
+        await ReturnToSender.filter(query)
+        .prefetch_related("parcel")
+        .order_by(sort_field)
+        .offset(offset)
+        .limit(page_size)
+    )
 
+    returns_data = [
+        ReturnToSenderSchema.model_validate(
+            {
+                **return_obj.__dict__,
+                "return_id": return_obj.id,
+                "parcel_name": return_obj.parcel.name if return_obj.parcel else None,
+            },
+            from_attributes=True,
+        )
+        for return_obj in returns
+    ]
     return ReturnToSenderListResponseSchema(
         total=total_count,
-        returns=[ReturnToSenderSchema.model_validate(obj, from_attributes=True) for obj in returns],
+        returns=returns_data,
     )
 
 

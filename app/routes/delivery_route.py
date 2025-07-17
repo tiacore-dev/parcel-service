@@ -87,11 +87,28 @@ async def get_delivery_to_recipient_list(
     offset = (page - 1) * page_size
 
     total_count = await DeliveryToRecipient.filter(query).count()
-    deliveries = await DeliveryToRecipient.filter(query).order_by(sort_field).offset(offset).limit(page_size)
+    deliveries = (
+        await DeliveryToRecipient.filter(query)
+        .prefetch_related("parcel")
+        .order_by(sort_field)
+        .offset(offset)
+        .limit(page_size)
+    )
 
+    delivery_data = [
+        DeliveryToRecipientSchema.model_validate(
+            {
+                **delivery.__dict__,
+                "delivery_id": delivery.id,
+                "parcel_name": delivery.parcel.name if delivery.parcel else None,
+            },
+            from_attributes=True,
+        )
+        for delivery in deliveries
+    ]
     return DeliveryToRecipientListResponseSchema(
         total=total_count,
-        deliveries=[DeliveryToRecipientSchema.model_validate(obj, from_attributes=True) for obj in deliveries],
+        deliveries=delivery_data,
     )
 
 
