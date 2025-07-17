@@ -58,6 +58,9 @@ async def get_issue_to_employee_list(
 ):
     query = Q()
 
+    if filters.get("parcel_name"):
+        query &= Q(parcel__name__incontains=filters["parcel_name"])
+
     if filters.get("parcel_id"):
         query &= Q(parcel_id=filters["parcel_id"])
 

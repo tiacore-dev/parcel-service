@@ -74,6 +74,9 @@ async def get_return_to_sender_list(
     if filters.get("sender_name"):
         query &= Q(sender_name__icontains=filters["sender_name"])
 
+    if filters.get("parcel_name"):
+        query &= Q(parcel__name__icontains=filters["parcel_name"])
+
     sort_by = filters.get("sort_by", "date")
     order = filters.get("order", "asc").lower()
     sort_field = sort_by if order == "asc" else f"-{sort_by}"

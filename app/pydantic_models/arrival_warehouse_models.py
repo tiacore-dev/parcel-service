@@ -58,6 +58,7 @@ class ArrivalToWarehouseListResponseSchema(BaseModel):
 
 
 def arrival_to_warehouse_filter_params(
+    parcel_name: Optional[str] = Query(None, description="Фильтр по номеру накладной"),
     parcel_id: Optional[UUID] = Query(None, description="Фильтр по ID накладной"),
     warehouse_id: Optional[UUID] = Query(None, description="Фильтр по ID склада"),
     date_from: Optional[datetime] = Query(None, description="Дата от (включительно)"),
@@ -68,6 +69,7 @@ def arrival_to_warehouse_filter_params(
     page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),
 ):
     return {
+        "parcel_name": parcel_name,
         "parcel_id": parcel_id,
         "warehouse_id": warehouse_id,
         "date_from": date_from,

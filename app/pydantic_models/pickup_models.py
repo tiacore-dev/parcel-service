@@ -64,6 +64,7 @@ class PickupFromSenderListResponseSchema(BaseModel):
 
 
 def pickup_from_sender_filter_params(
+    parcel_name: Optional[str] = Query(None, description="Фильтр по номеру накладной"),
     parcel_id: Optional[UUID] = Query(None, description="Фильтр по ID накладной"),
     warehouse_id: Optional[UUID] = Query(None, description="Фильтр по ID склада"),
     employee_id: Optional[UUID] = Query(None, description="Фильтр по ID сотрудника"),
@@ -76,6 +77,7 @@ def pickup_from_sender_filter_params(
     page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),
 ):
     return {
+        "parcel_name": parcel_name,
         "parcel_id": parcel_id,
         "warehouse_id": warehouse_id,
         "employee_id": employee_id,

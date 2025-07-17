@@ -61,6 +61,7 @@ class TransitDetailsListResponseSchema(BaseModel):
 
 
 def transit_details_filter_params(
+    parcel_name: Optional[str] = Query(None, description="Фильтр по номеру накладной"),
     transit_id: Optional[UUID] = Query(None, description="Фильтр по ID транзита"),
     parcel_id: Optional[UUID] = Query(None, description="Фильтр по ID накладной"),
     sort_by: Optional[str] = Query("id", description="Поле для сортировки"),
@@ -69,6 +70,7 @@ def transit_details_filter_params(
     page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),
 ):
     return {
+        "parcel_name": parcel_name,
         "transit_id": transit_id,
         "parcel_id": parcel_id,
         "sort_by": sort_by,

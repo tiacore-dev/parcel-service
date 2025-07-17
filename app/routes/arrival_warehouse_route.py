@@ -75,6 +75,9 @@ async def get_arrival_to_warehouse_list(
     if filters.get("date_to"):
         query &= Q(date__lte=filters["date_to"])
 
+    if filters.get("parcel_name"):
+        query &= Q(parcel__name__icontains=filters["parcel_name"])
+
     sort_by = filters.get("sort_by", "date")
     order = filters.get("order", "asc").lower()
     sort_field = sort_by if order == "asc" else f"-{sort_by}"

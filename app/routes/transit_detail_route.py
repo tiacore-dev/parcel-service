@@ -74,6 +74,9 @@ async def get_transit_details_list(
     if filters.get("parcel_id"):
         query &= Q(parcel_id=filters["parcel_id"])
 
+    if filters.get("parcel_name"):
+        query &= Q(parcel__name__icontains=filters["parcel_name"])
+
     sort_by = filters.get("sort_by", "id")
     order = filters.get("order", "asc").lower()
     sort_field = sort_by if order == "asc" else f"-{sort_by}"

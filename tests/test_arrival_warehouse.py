@@ -93,8 +93,8 @@ async def test_get_arrival_to_warehouse_list(
     test_app: AsyncClient, jwt_token_admin, seed_arrival_to_warehouse: ArrivalToWarehouse, seed_parcel: Parcel
 ):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
-
-    response = await test_app.get("/api/arrival-to-warehouse/all", headers=headers)
+    query_params = {"parcel_name": seed_parcel.name}
+    response = await test_app.get("/api/arrival-to-warehouse/all", headers=headers, params=query_params)
 
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
