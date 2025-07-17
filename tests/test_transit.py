@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
-from app.database.models import Transit
+from app.database.models import Transit, TransitDetails
 
 
 @pytest.mark.asyncio
@@ -28,6 +28,7 @@ async def test_add_transit(test_app: AsyncClient, jwt_token_admin):
     assert transit is not None
     assert str(transit.warehouse_from_id) == data["warehouse_from_id"]
     assert str(transit.warehouse_to_id) == data["warehouse_to_id"]
+    assert transit.name == "000000001"
 
 
 @pytest.mark.asyncio
@@ -76,8 +77,15 @@ async def test_delete_transit(test_app: AsyncClient, jwt_token_admin, seed_trans
     assert deleted is None
 
 
-@pytest.mark.asyncio
-async def test_get_transit_list(test_app: AsyncClient, jwt_token_admin, seed_transit: Transit):
+pytest.mark.asyncio
+
+
+async def test_get_transit_list(
+    test_app: AsyncClient,
+    jwt_token_admin,
+    seed_transit: Transit,
+    seed_transit_details: TransitDetails,  # <--- добавляем сюда деталь
+):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = await test_app.get("/api/transit/all", headers=headers)
@@ -89,4 +97,17 @@ async def test_get_transit_list(test_app: AsyncClient, jwt_token_admin, seed_tra
 
     assert data["total"] >= 1
     assert isinstance(transits, list)
-    assert any(transit["transit_id"] == str(seed_transit.id) for transit in transits)
+
+    # Ищем нужный транзит
+    matching_transit = next((t for t in transits if t["transit_id"] == str(seed_transit.id)), None)
+    assert matching_transit is not None, "Ожидаемый транзит не найден"
+
+    # Проверяем, что в транзите есть список parcels и он не пустой
+    parcels = matching_transit.get("parcels")
+    assert parcels is not None, "Поле 'parcels' отсутствует в транзите"
+    assert isinstance(parcels, list), "'parcels' должно быть списком"
+    assert len(parcels) >= 1, "Ожидается хотя бы одна посылка в транзите"
+
+    # Проверяем, что одна из посылок соответствует seed_transit_detail.parcel
+    parcel_names = [p["parcel_name"] for p in parcels]
+    assert seed_transit_details.parcel.name in parcel_names, "Посылка из детали не найдена в ответе"

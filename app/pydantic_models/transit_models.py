@@ -9,6 +9,7 @@ from app.database.models import TransitStatusEnum
 
 
 class TransitCreateSchema(BaseModel):
+    name: Optional[str] = Field(None, alias="transit_name")
     warehouse_from_id: UUID
     warehouse_to_id: UUID
     date: datetime
@@ -19,6 +20,7 @@ class TransitCreateSchema(BaseModel):
 
 
 class TransitEditSchema(BaseModel):
+    name: Optional[str] = Field(None, alias="transit_name")
     warehouse_from_id: Optional[UUID] = None
     warehouse_to_id: Optional[UUID] = None
     date: Optional[datetime] = None
@@ -35,12 +37,24 @@ class TransitResponseSchema(BaseModel):
         from_attributes = True
 
 
+class TransitParcelSchema(BaseModel):
+    parcel_name: Optional[str] = Field(None)
+    places_count: Optional[int] = Field(None)
+    recipient_city: Optional[UUID] = Field(None)
+    volume: Optional[float] = Field(None)
+    weight: Optional[float] = Field(None)
+    recipient_additional_info: Optional[str] = Field(None)
+
+
 class TransitSchema(BaseModel):
     id: UUID = Field(..., alias="transit_id")
+    name: str = Field(..., alias="transit_name")
     warehouse_from_id: UUID
     warehouse_to_id: UUID
     date: datetime
     status: TransitStatusEnum
+    parcel_count: Optional[int] = Field(None)
+    parcels: Optional[List[TransitParcelSchema]] = Field(None)
 
     created_at: datetime = Field(...)
     created_by: UUID = Field(...)
@@ -62,6 +76,7 @@ class TransitListResponseSchema(BaseModel):
 
 
 def transit_filter_params(
+    transit_name: Optional[str] = Query(None),
     status: Optional[TransitStatusEnum] = Query(None, description="Фильтр по статусу транзита"),
     warehouse_from_id: Optional[UUID] = Query(None, description="Фильтр по складу отправления"),
     warehouse_to_id: Optional[UUID] = Query(None, description="Фильтр по складу назначения"),
@@ -73,6 +88,7 @@ def transit_filter_params(
     page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),
 ):
     return {
+        "transit_name": transit_name,
         "status": status,
         "warehouse_from_id": warehouse_from_id,
         "warehouse_to_id": warehouse_to_id,

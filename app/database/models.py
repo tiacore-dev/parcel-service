@@ -2,6 +2,7 @@ import uuid
 from enum import Enum
 
 from tortoise import fields
+from tortoise.fields.relational import ReverseRelation
 from tortoise.models import Model
 
 
@@ -50,6 +51,14 @@ class ParcelCounter(Model):
 
     class Meta:
         table = "parcel_counter"
+
+
+class TransitCounter(Model):
+    id = fields.IntField(pk=True)
+    last_number = fields.IntField(default=0)
+
+    class Meta:
+        table = "transit_counter"
 
 
 class Parcel(Model):
@@ -279,6 +288,7 @@ class IssueToEmployee(Model):
 
 class Transit(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    name = fields.CharField(max_length=10, unique=True)
     warehouse_from_id = fields.UUIDField()
     warehouse_to_id = fields.UUIDField()
     date = fields.DatetimeField()
@@ -289,13 +299,15 @@ class Transit(Model):
     modified_at = fields.DatetimeField(auto_now=True)
     modified_by = fields.UUIDField()
 
+    transit_details: ReverseRelation["TransitDetails"]
+
     class Meta:
         table = "transit"
 
 
 class TransitDetails(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
-    transit = fields.ForeignKeyField("models.Transit", related_name="details")
+    transit = fields.ForeignKeyField("models.Transit", related_name="transit_details")
     parcel = fields.ForeignKeyField("models.Parcel", related_name="transit_details")
 
     created_at = fields.DatetimeField(auto_now_add=True)

@@ -13,6 +13,7 @@ from app.pydantic_models.transit_models import (
     TransitSchema,
     transit_filter_params,
 )
+from app.utils.db_helpers import generate_transit_number
 
 transit_router = APIRouter()
 
@@ -27,7 +28,10 @@ async def add_transit(
     data: TransitCreateSchema,
     context: dict = Depends(require_permission_in_context("add_transit")),
 ):
-    transit = await Transit.create(created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump())
+    create_data = data.model_dump()
+    if not data.name:
+        create_data["name"] = await generate_transit_number()
+    transit = await Transit.create(created_by=context["user_id"], modified_by=context["user_id"], **create_data)
 
     return TransitResponseSchema(transit_id=transit.id)
 
@@ -58,6 +62,9 @@ async def get_transit_list(
     if filters.get("status"):
         query &= Q(status=filters["status"])
 
+    if filters.get("transit_name"):
+        query &= Q(name__icontains=filters["transit_name"])
+
     sort_by = filters.get("sort_by", "date")
     order = filters.get("order", "asc").lower()
     sort_field = sort_by if order == "asc" else f"-{sort_by}"
@@ -66,11 +73,42 @@ async def get_transit_list(
     offset = (page - 1) * page_size
 
     total_count = await Transit.filter(query).count()
-    transits = await Transit.filter(query).order_by(sort_field).offset(offset).limit(page_size)
+    transits = (
+        await Transit.filter(query)
+        .prefetch_related("transit_details__parcel")
+        .order_by(sort_field)
+        .offset(offset)
+        .limit(page_size)
+    )
+
+    transit_schemas = []
+    for transit in transits:
+        parcels = []
+        for detail in await transit.transit_details.all():
+            parcel = await detail.parcel
+            if parcel:
+                parcels.append(
+                    {
+                        "parcel_name": parcel.name,
+                        "places_count": parcel.places_count,
+                        "recipient_city": parcel.recipient_city,
+                        "volume": parcel.volume,
+                        "weight": parcel.weight,
+                        "recipient_additional_info": parcel.recipient_additional_info,
+                    }
+                )
+
+        transit_dict = transit.__dict__.copy()
+        transit_dict["transit_id"] = transit.id
+        transit_dict["transit_name"] = transit.name
+        transit_dict["parcel_count"] = len(parcels)
+        transit_dict["parcels"] = parcels
+
+        transit_schemas.append(TransitSchema.model_validate(transit_dict, from_attributes=True))
 
     return TransitListResponseSchema(
         total=total_count,
-        transits=[TransitSchema.model_validate(obj, from_attributes=True) for obj in transits],
+        transits=transit_schemas,
     )
 
 

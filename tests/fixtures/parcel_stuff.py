@@ -151,6 +151,7 @@ async def seed_transit(
     seed_user,
 ):
     transit = await Transit.create(
+        name="0001",
         warehouse_from_id=uuid4(),
         warehouse_to_id=uuid4(),
         date=datetime.now(),

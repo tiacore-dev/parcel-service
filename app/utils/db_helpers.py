@@ -1,7 +1,7 @@
 from tortoise import Tortoise
 from tortoise.transactions import in_transaction
 
-from app.database.models import ParcelCounter
+from app.database.models import ParcelCounter, TransitCounter
 
 
 async def drop_all_tables():
@@ -17,6 +17,14 @@ async def drop_all_tables():
 async def generate_parcel_name() -> str:
     async with in_transaction():
         counter, _ = await ParcelCounter.get_or_create(id=1)
+        counter.last_number += 1
+        await counter.save()
+        return f"{counter.last_number:09d}"  # Формат: 000000001
+
+
+async def generate_transit_number() -> str:
+    async with in_transaction():
+        counter, _ = await TransitCounter.get_or_create(id=1)
         counter.last_number += 1
         await counter.save()
         return f"{counter.last_number:09d}"  # Формат: 000000001
