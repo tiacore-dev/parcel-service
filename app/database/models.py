@@ -396,6 +396,7 @@ class Attachments(Model):
     company_id = fields.UUIDField()
     description = fields.TextField(null=True)
     entity = fields.CharEnumField(AttachmentEntities)
+    entity_id = fields.UUIDField()
     s3_key = fields.CharField(max_length=255)
 
     class Meta:

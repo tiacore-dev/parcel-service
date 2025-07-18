@@ -13,6 +13,7 @@ class AttachmentCreateSchema(BaseModel):
     description: Optional[str]
     company_id: Optional[UUID]
     entity: AttachmentEntities
+    entity_id: UUID
     file: UploadFile
 
     @classmethod
@@ -22,6 +23,7 @@ class AttachmentCreateSchema(BaseModel):
         description: Optional[str] = Form(None),
         company_id: Optional[UUID] = Form(None),
         entity: AttachmentEntities = Form(...),
+        entity_id: UUID = Form(...),
         file: UploadFile = File(...),
     ):
         return cls(
@@ -29,6 +31,7 @@ class AttachmentCreateSchema(BaseModel):
             description=description,
             company_id=company_id,
             entity=entity,
+            entity_id=entity_id,
             file=file,
         )
 
@@ -42,6 +45,7 @@ class AttachmentEditSchema(BaseModel):
     description: Optional[str] = None
     company_id: Optional[UUID] = None
     entity: Optional[AttachmentEntities] = None
+    entity_id: Optional[UUID] = None
     file: Optional[UploadFile | str] = None
 
     @classmethod
@@ -51,6 +55,7 @@ class AttachmentEditSchema(BaseModel):
         description: Optional[str] = Form(None),
         company_id: Optional[str] = Form(None),  # как строка из формы
         entity: Optional[str] = Form(None),
+        entity_id: Optional[UUID] = Form(None),
         file: Optional[Union[str, UploadFile]] = File(None),
     ):
         return cls(
@@ -58,6 +63,7 @@ class AttachmentEditSchema(BaseModel):
             description=normalize_form_field(description, str),  # type: ignore[arg-type]
             company_id=normalize_form_field(company_id, UUID),  # type: ignore[arg-type]
             entity=normalize_form_field(entity, str),  # type: ignore[arg-type]
+            entity_id=normalize_form_field(entity_id, UUID),  # type: ignore[arg-type]
             file=None if isinstance(file, str) and file.strip() == "" else file,
         )
 
@@ -80,6 +86,7 @@ class AttachmentSchema(BaseModel):
     description: Optional[str] = None
     company_id: Optional[UUID] = None
     entity: AttachmentEntities
+    entity_id: UUID
     s3_key: str
 
     class Config:

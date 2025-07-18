@@ -52,6 +52,7 @@ async def add_attachment(
         company_id=data.company_id,
         description=data.description,
         entity=data.entity,
+        entity_id=data.entity_id,
         s3_key=s3_key,
     )
     return AttachmentResponseSchema(attachment_id=attachment.id)
@@ -100,6 +101,8 @@ async def update_attachment(
         update_data["description"] = data.description
     if data.entity:
         update_data["entity"] = data.entity
+    if data.entity_id:
+        update_data["entity_id"] = data.entity_id
 
     await attachment.update_from_dict(update_data)
     await attachment.save()
