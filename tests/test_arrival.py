@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
-from app.database.models import Arrival, Parcel
+from app.database.models import Arrival, ArrivalDetails, Parcel
 
 
 @pytest.mark.asyncio
@@ -24,6 +24,24 @@ async def test_add_arrival(test_app: AsyncClient, jwt_token_admin):
     arrival = await Arrival.get_or_none(id=response_data["arrival_id"])
 
     assert arrival is not None
+
+
+@pytest.mark.asyncio
+async def test_add_arrival_bulk(test_app: AsyncClient, jwt_token_admin, seed_parcel: Parcel):
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
+
+    data = {"warehouse_id": str(uuid4()), "date": datetime.now().isoformat(), "parcels": [str(seed_parcel.id)]}
+
+    response = await test_app.post("/api/arrivals/add-bulk", headers=headers, json=data)
+
+    assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
+
+    response_data = response.json()
+    arrival = await Arrival.get_or_none(id=response_data["arrival_id"])
+
+    detail = await ArrivalDetails.get_or_none(parcel_id=seed_parcel.id)
+    assert arrival is not None
+    assert detail is not None
 
 
 @pytest.mark.asyncio

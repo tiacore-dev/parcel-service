@@ -64,5 +64,5 @@ def register_routes(app: FastAPI):
         tags=["Issues"],
     )
     app.include_router(issue_details_router, prefix="/api/issue-details", tags=["IssueDetails"])
-    app.include_router(transit_router, prefix="/api/transit", tags=["Transits"])
+    app.include_router(transit_router, prefix="/api/transits", tags=["Transits"])
     app.include_router(transit_details_router, prefix="/api/transit-details", tags=["TransitDetails"])

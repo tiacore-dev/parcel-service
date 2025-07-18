@@ -16,6 +16,15 @@ class IssueCreateSchema(BaseModel):
         from_attributes = True
 
 
+class IssueCreateBulkSchema(BaseModel):
+    employee_id: UUID
+    date: datetime
+    parcels: List[UUID]
+
+    class Config:
+        from_attributes = True
+
+
 class IssueEditSchema(BaseModel):
     employee_id: Optional[UUID] = None
     date: Optional[datetime] = None

@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
 from tortoise.expressions import Q
 
-from app.database.models import Transit
+from app.database.models import Transit, TransitDetails
 from app.pydantic_models.transit_models import (
+    TransitCreateBulkSchema,
     TransitCreateSchema,
     TransitEditSchema,
     TransitListResponseSchema,
@@ -33,6 +34,32 @@ async def add_transit(
         create_data["name"] = await generate_transit_number()
     transit = await Transit.create(created_by=context["user_id"], modified_by=context["user_id"], **create_data)
 
+    return TransitResponseSchema(transit_id=transit.id)
+
+
+@transit_router.post(
+    "/add-bulk",
+    response_model=TransitResponseSchema,
+    summary="Добавить транзит",
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_bulk_transit(
+    data: TransitCreateBulkSchema,
+    context: dict = Depends(require_permission_in_context("add_transit_bulk")),
+):
+    create_data = data.model_dump()
+    if not data.name:
+        create_data["name"] = await generate_transit_number()
+    create_data.pop("parcels")
+    transit = await Transit.create(created_by=context["user_id"], modified_by=context["user_id"], **create_data)
+    await TransitDetails.bulk_create(
+        [
+            TransitDetails(
+                created_by=context["user_id"], modified_by=context["user_id"], parcel_id=parcel, transit=transit
+            )
+            for parcel in data.parcels
+        ]
+    )
     return TransitResponseSchema(transit_id=transit.id)
 
 

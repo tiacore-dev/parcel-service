@@ -20,6 +20,18 @@ class TransitCreateSchema(BaseModel):
         from_attributes = True
 
 
+class TransitCreateBulkSchema(BaseModel):
+    name: Optional[str] = Field(None, alias="transit_name", max_length=10)
+    warehouse_from_id: UUID
+    warehouse_to_id: UUID
+    date: datetime
+    status: TransitStatusEnum
+    parcels: List[UUID]
+
+    class Config:
+        from_attributes = True
+
+
 class TransitEditSchema(BaseModel):
     name: Optional[str] = Field(None, alias="transit_name")
     warehouse_from_id: Optional[UUID] = None

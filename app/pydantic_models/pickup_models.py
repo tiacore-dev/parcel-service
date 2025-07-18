@@ -63,7 +63,7 @@ class PickupListResponseSchema(BaseModel):
         populate_by_name = True
 
 
-def pickup_from_sender_filter_params(
+def pickup_filter_params(
     parcel_name: Optional[str] = Query(None, description="Фильтр по номеру накладной"),
     parcel_id: Optional[UUID] = Query(None, description="Фильтр по ID накладной"),
     warehouse_id: Optional[UUID] = Query(None, description="Фильтр по ID склада"),

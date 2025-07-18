@@ -4,14 +4,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
 from tortoise.expressions import Q
 
-from app.database.models import ParcelStatus, Return
+from app.database.models import ParcelStatus, Return, ReturnDetails
 from app.pydantic_models.return_models import (
+    ReturnCreateBulkSchema,
     ReturnCreateSchema,
     ReturnEditSchema,
     ReturnListResponseSchema,
     ReturnResponseSchema,
     ReturnSchema,
-    return_to_sender_filter_params,
+    return_filter_params,
 )
 
 return_router = APIRouter()
@@ -23,12 +24,37 @@ return_router = APIRouter()
     summary="Добавить событие возврата отправителю",
     status_code=status.HTTP_201_CREATED,
 )
-async def add_return_to_sender(
+async def add_return(
     data: ReturnCreateSchema,
-    context: dict = Depends(require_permission_in_context("add_return_to_sender")),
+    context: dict = Depends(require_permission_in_context("add_return")),
 ):
     return_obj = await Return.create(created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump())
 
+    return ReturnResponseSchema(return_id=return_obj.id)
+
+
+@return_router.post(
+    "/add-bulk",
+    response_model=ReturnResponseSchema,
+    summary="Добавить возврат",
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_bulk_return(
+    data: ReturnCreateBulkSchema,
+    context: dict = Depends(require_permission_in_context("add_return_bulk")),
+):
+    create_data = data.model_dump()
+
+    create_data.pop("parcels")
+    return_obj = await Return.create(created_by=context["user_id"], modified_by=context["user_id"], **create_data)
+    await ReturnDetails.bulk_create(
+        [
+            ReturnDetails(
+                created_by=context["user_id"], modified_by=context["user_id"], parcel_id=parcel, returns=return_obj
+            )
+            for parcel in data.parcels
+        ]
+    )
     return ReturnResponseSchema(return_id=return_obj.id)
 
 
@@ -37,9 +63,9 @@ async def add_return_to_sender(
     response_model=ReturnListResponseSchema,
     summary="Получение списка возвратов отправителю",
 )
-async def get_return_to_sender_list(
-    filters: dict = Depends(return_to_sender_filter_params),
-    _: dict = Depends(require_permission_in_context("get_all_returns_to_sender")),
+async def get_return_list(
+    filters: dict = Depends(return_filter_params),
+    _: dict = Depends(require_permission_in_context("get_all_returns")),
 ):
     query = Q()
 
@@ -107,9 +133,9 @@ async def get_return_to_sender_list(
     response_model=ReturnSchema,
     summary="Просмотр одного события возврата отправителю",
 )
-async def get_return_to_sender(
+async def get_return(
     return_id: UUID,
-    _: dict = Depends(require_permission_in_context("view_return_to_sender")),
+    _: dict = Depends(require_permission_in_context("view_return")),
 ):
     return_obj = await Return.filter(id=return_id).first()
 
@@ -124,10 +150,10 @@ async def get_return_to_sender(
     response_model=ReturnResponseSchema,
     summary="Редактирование события возврата отправителю",
 )
-async def edit_return_to_sender(
+async def edit_return(
     return_id: UUID,
     data: ReturnEditSchema,
-    context: dict = Depends(require_permission_in_context("edit_return_to_sender")),
+    context: dict = Depends(require_permission_in_context("edit_return")),
 ):
     return_obj = await Return.filter(id=return_id).first()
 
@@ -146,9 +172,9 @@ async def edit_return_to_sender(
     summary="Удаление события возврата отправителю",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_return_to_sender(
+async def delete_return(
     return_id: UUID,
-    _: dict = Depends(require_permission_in_context("delete_return_to_sender")),
+    _: dict = Depends(require_permission_in_context("delete_return")),
 ):
     return_obj = await Return.filter(id=return_id).first()
 

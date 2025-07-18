@@ -4,10 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
 from tortoise.expressions import Q
 
-from app.database.models import (
-    Arrival,
-)
+from app.database.models import Arrival, ArrivalDetails
 from app.pydantic_models.arrival_models import (
+    ArrivalCreateBulkSchema,
     ArrivalCreateSchema,
     ArrivalEditSchema,
     ArrivalListResponseSchema,
@@ -31,6 +30,31 @@ async def add_arrival(
 ):
     arrival = await Arrival.create(created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump())
 
+    return ArrivalResponseSchema(arrival_id=arrival.id)
+
+
+@arrival_router.post(
+    "/add-bulk",
+    response_model=ArrivalResponseSchema,
+    summary="Добавить транзит",
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_bulk_arrival(
+    data: ArrivalCreateBulkSchema,
+    context: dict = Depends(require_permission_in_context("add_arrival_bulk")),
+):
+    create_data = data.model_dump()
+
+    create_data.pop("parcels")
+    arrival = await Arrival.create(created_by=context["user_id"], modified_by=context["user_id"], **create_data)
+    await ArrivalDetails.bulk_create(
+        [
+            ArrivalDetails(
+                created_by=context["user_id"], modified_by=context["user_id"], parcel_id=parcel, arrival=arrival
+            )
+            for parcel in data.parcels
+        ]
+    )
     return ArrivalResponseSchema(arrival_id=arrival.id)
 
 

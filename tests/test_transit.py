@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
-from app.database.models import Transit, TransitDetails
+from app.database.models import Parcel, Transit, TransitDetails
 
 
 @pytest.mark.asyncio
@@ -18,7 +18,7 @@ async def test_add_transit(test_app: AsyncClient, jwt_token_admin):
         "status": "on_the_way",
     }
 
-    response = await test_app.post("/api/transit/add", headers=headers, json=data)
+    response = await test_app.post("/api/transits/add", headers=headers, json=data)
 
     assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
@@ -32,6 +32,30 @@ async def test_add_transit(test_app: AsyncClient, jwt_token_admin):
 
 
 @pytest.mark.asyncio
+async def test_add_transit_bulk(test_app: AsyncClient, jwt_token_admin, seed_parcel: Parcel):
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
+
+    data = {
+        "warehouse_from_id": str(uuid4()),
+        "warehouse_to_id": str(uuid4()),
+        "date": datetime.now().isoformat(),
+        "status": "on_the_way",
+        "parcels": [str(seed_parcel.id)],
+    }
+
+    response = await test_app.post("/api/transits/add-bulk", headers=headers, json=data)
+
+    assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
+
+    response_data = response.json()
+    transit = await Transit.get_or_none(id=response_data["transit_id"])
+
+    detail = await TransitDetails.get_or_none(parcel_id=seed_parcel.id)
+    assert transit is not None
+    assert detail is not None
+
+
+@pytest.mark.asyncio
 async def test_edit_transit(test_app: AsyncClient, jwt_token_admin, seed_transit: Transit):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
@@ -40,7 +64,7 @@ async def test_edit_transit(test_app: AsyncClient, jwt_token_admin, seed_transit
     data = {"warehouse_to_id": str(new_warehouse_to_id), "status": "finished"}
 
     response = await test_app.patch(
-        f"/api/transit/{seed_transit.id}",
+        f"/api/transits/{seed_transit.id}",
         headers=headers,
         json=data,
     )
@@ -57,7 +81,7 @@ async def test_edit_transit(test_app: AsyncClient, jwt_token_admin, seed_transit
 async def test_view_transit(test_app: AsyncClient, jwt_token_admin, seed_transit: Transit):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
-    response = await test_app.get(f"/api/transit/{seed_transit.id}", headers=headers)
+    response = await test_app.get(f"/api/transits/{seed_transit.id}", headers=headers)
 
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
@@ -69,7 +93,7 @@ async def test_view_transit(test_app: AsyncClient, jwt_token_admin, seed_transit
 async def test_delete_transit(test_app: AsyncClient, jwt_token_admin, seed_transit: Transit):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
-    response = await test_app.delete(f"/api/transit/{seed_transit.id}", headers=headers)
+    response = await test_app.delete(f"/api/transits/{seed_transit.id}", headers=headers)
 
     assert response.status_code == 204, f"Ошибка: {response.status_code}, {response.text}"
 
@@ -88,7 +112,7 @@ async def test_get_transit_list(
 ):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
-    response = await test_app.get("/api/transit/all", headers=headers)
+    response = await test_app.get("/api/transits/all", headers=headers)
 
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 

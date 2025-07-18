@@ -16,6 +16,15 @@ class ArrivalCreateSchema(BaseModel):
         from_attributes = True
 
 
+class ArrivalCreateBulkSchema(BaseModel):
+    warehouse_id: UUID
+    date: datetime
+    parcels: List[UUID]
+
+    class Config:
+        from_attributes = True
+
+
 class ArrivalEditSchema(BaseModel):
     warehouse_id: Optional[UUID] = None
     date: Optional[datetime] = None

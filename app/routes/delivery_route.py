@@ -18,7 +18,7 @@ from app.pydantic_models.delivery_models import (
     DeliveryListResponseSchema,
     DeliveryResponseSchema,
     DeliverySchema,
-    delivery_to_recipient_filter_params,
+    delivery_filter_params,
 )
 
 delivery_router = APIRouter()
@@ -30,9 +30,9 @@ delivery_router = APIRouter()
     summary="Добавить событие доставки получателю",
     status_code=status.HTTP_201_CREATED,
 )
-async def add_delivery_to_recipient(
+async def add_delivery(
     data: DeliveryCreateSchema,
-    context: dict = Depends(require_permission_in_context("add_delivery_to_recipient")),
+    context: dict = Depends(require_permission_in_context("add_delivery")),
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
     delivery = await Delivery.create(created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump())
@@ -53,9 +53,9 @@ async def add_delivery_to_recipient(
     response_model=DeliveryListResponseSchema,
     summary="Получение списка событий доставки получателю",
 )
-async def get_delivery_to_recipient_list(
-    filters: dict = Depends(delivery_to_recipient_filter_params),
-    _: dict = Depends(require_permission_in_context("get_all_deliveries_to_recipient")),
+async def get_delivery_list(
+    filters: dict = Depends(delivery_filter_params),
+    _: dict = Depends(require_permission_in_context("get_all_deliveries")),
 ):
     query = Q()
 
@@ -114,9 +114,9 @@ async def get_delivery_to_recipient_list(
     response_model=DeliverySchema,
     summary="Просмотр одного события доставки получателю",
 )
-async def get_delivery_to_recipient(
+async def get_delivery(
     delivery_id: UUID,
-    _: dict = Depends(require_permission_in_context("view_delivery_to_recipient")),
+    _: dict = Depends(require_permission_in_context("view_delivery")),
 ):
     delivery = await Delivery.filter(id=delivery_id).first()
 
@@ -131,10 +131,10 @@ async def get_delivery_to_recipient(
     response_model=DeliveryResponseSchema,
     summary="Редактирование события доставки получателю",
 )
-async def edit_delivery_to_recipient(
+async def edit_delivery(
     delivery_id: UUID,
     data: DeliveryEditSchema,
-    context: dict = Depends(require_permission_in_context("edit_delivery_to_recipient")),
+    context: dict = Depends(require_permission_in_context("edit_delivery")),
 ):
     delivery = await Delivery.filter(id=delivery_id).prefetch_related("parcel").first()
 
@@ -163,9 +163,9 @@ async def edit_delivery_to_recipient(
     summary="Удаление события доставки получателю",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_delivery_to_recipient(
+async def delete_delivery(
     delivery_id: UUID,
-    _: dict = Depends(require_permission_in_context("delete_delivery_to_recipient")),
+    _: dict = Depends(require_permission_in_context("delete_delivery")),
 ):
     delivery = await Delivery.filter(id=delivery_id).prefetch_related("parcel").first()
 

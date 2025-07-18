@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
 from tortoise.expressions import Q
 
-from app.database.models import Issue, ParcelStatus
+from app.database.models import Issue, IssueDetails, ParcelStatus
 from app.pydantic_models.issue_models import (
+    IssueCreateBulkSchema,
     IssueCreateSchema,
     IssueEditSchema,
     IssueListResponseSchema,
@@ -29,6 +30,29 @@ async def add_issue(
 ):
     issue = await Issue.create(created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump())
 
+    return IssueResponseSchema(issue_id=issue.id)
+
+
+@issue_router.post(
+    "/add-bulk",
+    response_model=IssueResponseSchema,
+    summary="Добавить транзит",
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_bulk_issue(
+    data: IssueCreateBulkSchema,
+    context: dict = Depends(require_permission_in_context("add_issue_bulk")),
+):
+    create_data = data.model_dump()
+
+    create_data.pop("parcels")
+    issue = await Issue.create(created_by=context["user_id"], modified_by=context["user_id"], **create_data)
+    await IssueDetails.bulk_create(
+        [
+            IssueDetails(created_by=context["user_id"], modified_by=context["user_id"], parcel_id=parcel, issue=issue)
+            for parcel in data.parcels
+        ]
+    )
     return IssueResponseSchema(issue_id=issue.id)
 
 
