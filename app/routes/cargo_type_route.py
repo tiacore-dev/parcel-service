@@ -2,6 +2,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
+from tiacore_lib.handlers.permissions_handler import with_permission_and_company_from_body_check
+from tiacore_lib.utils.validate_helpers import validate_company_access
 from tortoise.expressions import Q
 
 from app.database.models import CargoType
@@ -27,7 +29,7 @@ MILLION = 1000000
 )
 async def add_cargo_type(
     data: CargoTypeCreateSchema,
-    context: dict = Depends(require_permission_in_context("add_cargo_type")),
+    context: dict = Depends(with_permission_and_company_from_body_check("add_cargo_type")),
 ):
     type = await CargoType.create(created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump())
 
@@ -48,7 +50,7 @@ async def edit_cargo_type(
 
     if not cargo_type:
         raise HTTPException(status_code=404, detail="Груз не найден")
-
+    validate_company_access(cargo_type, context, "тип груза")
     update_data = data.model_dump(exclude_unset=True)
 
     await cargo_type.update_from_dict(update_data)
@@ -65,13 +67,13 @@ async def edit_cargo_type(
 )
 async def delete_cargo_type(
     cargo_type_id: UUID,
-    _: dict = Depends(require_permission_in_context("delete_cargo_type_type")),
+    context: dict = Depends(require_permission_in_context("delete_cargo_type_type")),
 ):
     cargo_type = await CargoType.filter(id=cargo_type_id).first()
 
     if not cargo_type:
         raise HTTPException(status_code=404, detail="Груз не найден")
-
+    validate_company_access(cargo_type, context, "тип груза")
     await cargo_type.delete()
     return
 
@@ -119,11 +121,11 @@ async def get_cargo_type(
 )
 async def get_cargo_type_by_id(
     cargo_type_id: UUID,
-    _: dict = Depends(require_permission_in_context("view_cargo_type")),
+    context: dict = Depends(require_permission_in_context("view_cargo_type")),
 ):
     cargo_type = await CargoType.filter(id=cargo_type_id).first()
 
     if not cargo_type:
         raise HTTPException(status_code=404, detail="Груз не найден")
-
+    validate_company_access(cargo_type, context, "тип груза")
     return CargoTypeSchema.model_validate(cargo_type, from_attributes=True)

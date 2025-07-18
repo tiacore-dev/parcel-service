@@ -110,6 +110,10 @@ class Parcel(Model):
     modified_at = fields.DatetimeField(auto_now=True)
     modified_by = fields.UUIDField()
 
+    parcel_cargo: ReverseRelation["ParcelCargo"]
+    parcel_products: ReverseRelation["ParcelProduct"]
+    statuses: ReverseRelation["ParcelStatus"]
+
     class Meta:
         table = "parcels"
 
@@ -123,6 +127,8 @@ class CargoType(Model):
     created_by = fields.UUIDField()
     modified_at = fields.DatetimeField(auto_now=True)
     modified_by = fields.UUIDField()
+
+    parcel_cargo: ReverseRelation["ParcelCargo"]
 
     class Meta:
         table = "cargo_type"
@@ -337,7 +343,7 @@ class Transit(Model):
     warehouse_from_id = fields.UUIDField()
     warehouse_to_id = fields.UUIDField()
     date = fields.DatetimeField()
-    status = fields.CharEnumField(TransitStatusEnum)
+    status = fields.CharEnumField(TransitStatusEnum, null=True)
 
     created_at = fields.DatetimeField(auto_now_add=True)
     created_by = fields.UUIDField()
@@ -362,3 +368,35 @@ class TransitDetails(Model):
 
     class Meta:
         table = "transit_details"
+
+
+class TemplateEntities(str, Enum):
+    PARCEL = "parcel"
+
+
+class Templates(Model):
+    id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    name = fields.CharField(max_length=255)
+    company_id = fields.UUIDField()
+    description = fields.TextField(null=True)
+    entity = fields.CharEnumField(TemplateEntities)
+    s3_key = fields.CharField(max_length=255)
+
+    class Meta:
+        table = "templates"
+
+
+class AttachmentEntities(str, Enum):
+    PARCEL = "parcel"
+
+
+class Attachments(Model):
+    id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    name = fields.CharField(max_length=255)
+    company_id = fields.UUIDField()
+    description = fields.TextField(null=True)
+    entity = fields.CharEnumField(AttachmentEntities)
+    s3_key = fields.CharField(max_length=255)
+
+    class Meta:
+        table = "attachments"

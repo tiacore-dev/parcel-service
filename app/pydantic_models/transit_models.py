@@ -14,7 +14,7 @@ class TransitCreateSchema(BaseModel):
     warehouse_from_id: UUID
     warehouse_to_id: UUID
     date: datetime
-    status: TransitStatusEnum
+    status: Optional[TransitStatusEnum] = Field(None)
 
     class Config:
         from_attributes = True
@@ -56,7 +56,7 @@ class TransitSchema(BaseModel):
     warehouse_from_id: UUID
     warehouse_to_id: UUID
     date: datetime
-    status: TransitStatusEnum
+    status: Optional[TransitStatusEnum] = Field(None)
     parcel_count: Optional[int] = Field(None)
     parcels: Optional[List[ParcelShortSchema]] = Field(None)
 

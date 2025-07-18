@@ -9,6 +9,7 @@ from tiacore_lib.routes.user_route import user_router
 
 from .arrival_details_route import arrival_details_router
 from .arrival_route import arrival_router
+from .attachment_route import attachment_router
 from .cargo_type_route import cargo_type_router
 from .delivery_route import delivery_router
 from .issue_details_route import issue_details_router
@@ -21,6 +22,7 @@ from .pickup_route import pickup_router
 from .return_details_route import return_details_router
 from .return_route import return_router
 from .statuses_route import status_router
+from .template_route import template_router
 from .transit_detail_route import transit_details_router
 from .transit_route import transit_router
 
@@ -66,3 +68,6 @@ def register_routes(app: FastAPI):
     app.include_router(issue_details_router, prefix="/api/issue-details", tags=["IssueDetails"])
     app.include_router(transit_router, prefix="/api/transits", tags=["Transits"])
     app.include_router(transit_details_router, prefix="/api/transit-details", tags=["TransitDetails"])
+
+    app.include_router(template_router, prefix="/api/templates", tags=["Templates"])
+    app.include_router(attachment_router, prefix="/api/attachments", tags=["Attachments"])

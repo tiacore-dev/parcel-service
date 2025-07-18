@@ -3,6 +3,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
+from tiacore_lib.handlers.permissions_handler import with_permission_and_company_from_body_check
+from tiacore_lib.utils.validate_helpers import validate_company_access
 from tortoise.expressions import Q
 
 from app.database.models import Parcel
@@ -29,7 +31,7 @@ parcel_router = APIRouter()
 )
 async def add_parcel(
     data: ParcelCreateSchema,
-    context=Depends(require_permission_in_context("add_parcel")),
+    context=Depends(with_permission_and_company_from_body_check("add_parcel")),
 ):
     create_data = data.model_dump()
     if not data.name:
@@ -52,7 +54,7 @@ async def edit_parcel(
     parcel = await Parcel.get_or_none(id=parcel_id)
     if not parcel:
         raise HTTPException(status_code=404, detail="")
-
+    validate_company_access(parcel, context, "Накладная")
     await parcel.update_from_dict(data.model_dump(exclude_unset=True))
     parcel.modified_by = context["user_id"]
     await parcel.save()
@@ -67,12 +69,12 @@ async def edit_parcel(
 )
 async def delete_parcel(
     parcel_id: UUID,
-    _: dict = Depends(require_permission_in_context("delete_parcel")),
+    context: dict = Depends(require_permission_in_context("delete_parcel")),
 ):
     parcel = await Parcel.get_or_none(id=parcel_id)
     if not parcel:
         raise HTTPException(status_code=404, detail="")
-
+    validate_company_access(parcel, context, "Накладная")
     await parcel.delete()
 
 
@@ -156,6 +158,7 @@ async def get_parcel_status(
     data = await get_cached_parcel_status_data(parcel_id=parcel_id)
     if not data:
         return None
+
     return ParcelCurrentStatusSchema.model_validate(data)
 
 
@@ -166,13 +169,13 @@ async def get_parcel_status(
 )
 async def get_parcel_by_number(
     parcel_name: str = Query(..., description="Номер накладной"),
-    _: dict = Depends(require_permission_in_context("view_parcel")),
+    context: dict = Depends(require_permission_in_context("view_parcel")),
 ):
     parcel = await Parcel.filter(name=parcel_name).first()
 
     if not parcel:
         raise HTTPException(status_code=404, detail="Накладная не найдена")
-
+    validate_company_access(parcel, context, "Накладная")
     return ParcelSchema.model_validate(parcel, from_attributes=True)
 
 
@@ -183,11 +186,11 @@ async def get_parcel_by_number(
 )
 async def get_legal_parcel(
     parcel_id: UUID,
-    _: dict = Depends(require_permission_in_context("view_parcel")),
+    context: dict = Depends(require_permission_in_context("view_parcel")),
 ):
     parcel = await Parcel.filter(id=parcel_id).first()
 
     if not parcel:
         raise HTTPException(status_code=404, detail="Накладная не найдена")
-
+    validate_company_access(parcel, context, "Накладная")
     return ParcelSchema.model_validate(parcel, from_attributes=True)

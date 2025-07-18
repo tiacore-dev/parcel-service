@@ -1,6 +1,4 @@
-import io
 import os
-import re
 
 import aioboto3
 from botocore.exceptions import ClientError
@@ -25,57 +23,33 @@ class AsyncS3Manager:
     def _get_session(self):
         return aioboto3.Session()
 
-    def _build_path(self, company_id: str, filename: str, entity: str) -> str:
-        return f"{self.bucket_folder}/{entity}/{company_id}/{filename}"
+    def _build_path(self, entity: str, company_id: str, filename: str) -> str:
+        return f"{self.bucket_folder}/{company_id}/{entity}/{filename}"
 
-    async def upload_bytes(
-        self, file_bytes: bytes, company_id: str, filename: str, entity: str
-    ):
-        # 🔧 Нормализуем имя файла
-        normalized_filename = self._normalize_filename(filename)
-        key = self._build_path(company_id, normalized_filename, entity)
-
+    def _get_client(self):
         session = self._get_session()
-        async with session.client(
+        return session.client(
             "s3",
             endpoint_url=self.endpoint_url,
             region_name=self.region_name,
             aws_access_key_id=self.aws_access_key_id,
             aws_secret_access_key=self.aws_secret_access_key,
-        ) as s3:  # type: ignore[attr-defined]
-            try:
-                await s3.put_object(
-                    Bucket=self.bucket_name,
-                    Key=key,
-                    Body=io.BytesIO(file_bytes),
-                    ACL="private",
-                    ContentLength=len(file_bytes),
-                    Metadata={"x-amz-content-sha256": "UNSIGNED-PAYLOAD"},
-                )
+        )
 
+    async def upload_bytes(self, file_bytes: bytes, company_id: str, filename: str, entity: str):
+        key = self._build_path(entity, company_id, filename)
+
+        async with self._get_client() as s3:  # type: ignore[attr-defined]
+            try:
+                await s3.put_object(Bucket=self.bucket_name, Key=key, Body=file_bytes, ACL="private")
                 logger.info(f"✅ Файл загружен: {key}")
                 return key
             except ClientError as e:
                 logger.error(f"Ошибка загрузки: {e}")
                 raise
 
-    def _normalize_filename(self, filename: str) -> str:
-        # Убираем опасные символы, заменяем пробелы и двойные точки
-        filename = filename.strip()
-        filename = filename.replace(" ", "_")
-        # можно строже, если нужно
-        filename = re.sub(r"[^\w.\-]", "", filename)
-        return filename
-
     async def generate_presigned_url(self, key, expiration=3600):
-        session = self._get_session()
-        async with session.client(
-            "s3",
-            endpoint_url=self.endpoint_url,
-            region_name=self.region_name,
-            aws_access_key_id=self.aws_access_key_id,
-            aws_secret_access_key=self.aws_secret_access_key,
-        ) as s3:  # type: ignore[attr-defined]
+        async with self._get_client() as s3:  # type: ignore[attr-defined]
             try:
                 return await s3.generate_presigned_url(
                     ClientMethod="get_object",
@@ -87,14 +61,7 @@ class AsyncS3Manager:
                 return None
 
     async def delete_file(self, key):
-        session = self._get_session()
-        async with session.client(
-            "s3",
-            endpoint_url=self.endpoint_url,
-            region_name=self.region_name,
-            aws_access_key_id=self.aws_access_key_id,
-            aws_secret_access_key=self.aws_secret_access_key,
-        ) as s3:  # type: ignore[attr-defined]
+        async with self._get_client() as s3:  # type: ignore[attr-defined]
             try:
                 await s3.delete_object(Bucket=self.bucket_name, Key=key)
                 logger.info(f"🗑️ Файл удалён: {key}")
@@ -102,22 +69,12 @@ class AsyncS3Manager:
                 logger.error(f"Ошибка при удалении файла: {e}")
                 raise
 
-    async def download_bytes(self, s3_key: str) -> bytes:
-        session = self._get_session()
-        async with session.client(
-            "s3",
-            endpoint_url=self.endpoint_url,
-            region_name=self.region_name,
-            aws_access_key_id=self.aws_access_key_id,
-            aws_secret_access_key=self.aws_secret_access_key,
-        ) as s3:  # type: ignore[attr-defined]
+    async def list_chat_files(self, chat_id: int) -> list[str]:
+        prefix = f"{self.bucket_folder}/{chat_id}/"
+        async with self._get_client() as s3:  # type: ignore[attr-defined]
             try:
-                response = await s3.get_object(Bucket=self.bucket_name, Key=s3_key)
-                file_bytes = await response["Body"].read()
-                logger.info(
-                    f"📥 Файл загружен с S3: {s3_key}, размер: {len(file_bytes)} байт"
-                )
-                return file_bytes
+                response = await s3.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
+                return [obj["Key"] for obj in response.get("Contents", [])]
             except ClientError as e:
-                logger.error(f"❌ Ошибка при загрузке файла: {e}")
-                raise
+                logger.error(f"Ошибка при получении списка файлов: {e}")
+                return []
