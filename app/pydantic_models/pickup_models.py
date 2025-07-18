@@ -6,7 +6,7 @@ from fastapi import Query
 from pydantic import BaseModel, Field
 
 
-class PickupFromSenderCreateSchema(BaseModel):
+class PickupCreateSchema(BaseModel):
     warehouse_id: Optional[UUID] = Field(None)
     employee_id: UUID
     date: datetime
@@ -17,7 +17,7 @@ class PickupFromSenderCreateSchema(BaseModel):
         from_attributes = True
 
 
-class PickupFromSenderEditSchema(BaseModel):
+class PickupEditSchema(BaseModel):
     warehouse_id: Optional[UUID] = None
     employee_id: Optional[UUID] = None
     date: Optional[datetime] = None
@@ -28,14 +28,14 @@ class PickupFromSenderEditSchema(BaseModel):
         from_attributes = True
 
 
-class PickupFromSenderResponseSchema(BaseModel):
+class PickupResponseSchema(BaseModel):
     pickup_id: UUID
 
     class Config:
         from_attributes = True
 
 
-class PickupFromSenderSchema(BaseModel):
+class PickupSchema(BaseModel):
     id: UUID = Field(..., alias="pickup_id")
     warehouse_id: Optional[UUID] = Field(None)
     employee_id: UUID
@@ -54,9 +54,9 @@ class PickupFromSenderSchema(BaseModel):
         populate_by_name = True
 
 
-class PickupFromSenderListResponseSchema(BaseModel):
+class PickupListResponseSchema(BaseModel):
     total: int
-    pickups: List[PickupFromSenderSchema]
+    pickups: List[PickupSchema]
 
     class Config:
         from_attributes = True

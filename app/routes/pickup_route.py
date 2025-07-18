@@ -5,14 +5,14 @@ from tiacore_lib.handlers.dependency_handler import require_permission_in_contex
 from tiacore_lib.utils.validate_helpers import validate_exists
 from tortoise.expressions import Q
 
-from app.database.models import Parcel, ParcelStatus, ParcelStatusEnum, PickupFromSender
+from app.database.models import Parcel, ParcelStatus, ParcelStatusEnum, Pickup
 from app.handlers.status_handler import recalculate_parcel_status
 from app.pydantic_models.pickup_models import (
-    PickupFromSenderCreateSchema,
-    PickupFromSenderEditSchema,
-    PickupFromSenderListResponseSchema,
-    PickupFromSenderResponseSchema,
-    PickupFromSenderSchema,
+    PickupCreateSchema,
+    PickupEditSchema,
+    PickupListResponseSchema,
+    PickupResponseSchema,
+    PickupSchema,
     pickup_from_sender_filter_params,
 )
 
@@ -21,18 +21,16 @@ pickup_router = APIRouter()
 
 @pickup_router.post(
     "/add",
-    response_model=PickupFromSenderResponseSchema,
+    response_model=PickupResponseSchema,
     summary="Добавить событие получения от отправителя",
     status_code=status.HTTP_201_CREATED,
 )
 async def add_pickup_from_sender(
-    data: PickupFromSenderCreateSchema,
+    data: PickupCreateSchema,
     context: dict = Depends(require_permission_in_context("add_pickup_from_sender")),
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
-    pickup = await PickupFromSender.create(
-        created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump()
-    )
+    pickup = await Pickup.create(created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump())
     if data.warehouse_id:
         await ParcelStatus.create(
             parcel_id=data.parcel_id,
@@ -56,12 +54,12 @@ async def add_pickup_from_sender(
             created_by=context["user_id"],
         )
     await recalculate_parcel_status(data.parcel_id)
-    return PickupFromSenderResponseSchema(pickup_id=pickup.id)
+    return PickupResponseSchema(pickup_id=pickup.id)
 
 
 @pickup_router.get(
     "/all",
-    response_model=PickupFromSenderListResponseSchema,
+    response_model=PickupListResponseSchema,
     summary="Получение списка событий получения от отправителя",
 )
 async def get_pickup_from_sender_list(
@@ -98,17 +96,11 @@ async def get_pickup_from_sender_list(
     page_size = filters.get("page_size", 10)
     offset = (page - 1) * page_size
 
-    total_count = await PickupFromSender.filter(query).count()
-    pickups = (
-        await PickupFromSender.filter(query)
-        .prefetch_related("parcel")
-        .order_by(sort_field)
-        .offset(offset)
-        .limit(page_size)
-    )
+    total_count = await Pickup.filter(query).count()
+    pickups = await Pickup.filter(query).prefetch_related("parcel").order_by(sort_field).offset(offset).limit(page_size)
 
     pickups_data = [
-        PickupFromSenderSchema.model_validate(
+        PickupSchema.model_validate(
             {
                 **pickup.__dict__,
                 "pickup_id": pickup.id,
@@ -118,7 +110,7 @@ async def get_pickup_from_sender_list(
         )
         for pickup in pickups
     ]
-    return PickupFromSenderListResponseSchema(
+    return PickupListResponseSchema(
         total=total_count,
         pickups=pickups_data,
     )
@@ -126,32 +118,32 @@ async def get_pickup_from_sender_list(
 
 @pickup_router.get(
     "/{pickup_id}",
-    response_model=PickupFromSenderSchema,
+    response_model=PickupSchema,
     summary="Просмотр одного события получения от отправителя",
 )
 async def get_pickup_from_sender(
     pickup_id: UUID,
     _: dict = Depends(require_permission_in_context("view_pickup_from_sender")),
 ):
-    pickup = await PickupFromSender.filter(id=pickup_id).first()
+    pickup = await Pickup.filter(id=pickup_id).first()
 
     if not pickup:
         raise HTTPException(status_code=404, detail="Событие не найдено")
 
-    return PickupFromSenderSchema.model_validate(pickup, from_attributes=True)
+    return PickupSchema.model_validate(pickup, from_attributes=True)
 
 
 @pickup_router.patch(
     "/{pickup_id}",
-    response_model=PickupFromSenderResponseSchema,
+    response_model=PickupResponseSchema,
     summary="Редактирование события получения от отправителя",
 )
 async def edit_pickup_from_sender(
     pickup_id: UUID,
-    data: PickupFromSenderEditSchema,
+    data: PickupEditSchema,
     context: dict = Depends(require_permission_in_context("edit_pickup_from_sender")),
 ):
-    pickup = await PickupFromSender.filter(id=pickup_id).prefetch_related("parcel").first()
+    pickup = await Pickup.filter(id=pickup_id).prefetch_related("parcel").first()
 
     if not pickup:
         raise HTTPException(status_code=404, detail="Событие не найдено")
@@ -185,7 +177,7 @@ async def edit_pickup_from_sender(
 
     await recalculate_parcel_status(pickup.parcel.id)
 
-    return PickupFromSenderResponseSchema(pickup_id=pickup.id)
+    return PickupResponseSchema(pickup_id=pickup.id)
 
 
 @pickup_router.delete(
@@ -197,7 +189,7 @@ async def delete_pickup_from_sender(
     pickup_id: UUID,
     _: dict = Depends(require_permission_in_context("delete_pickup_from_sender")),
 ):
-    pickup = await PickupFromSender.filter(id=pickup_id).prefetch_related("parcel").first()
+    pickup = await Pickup.filter(id=pickup_id).prefetch_related("parcel").first()
 
     if not pickup:
         raise HTTPException(status_code=404, detail="Событие не найдено")

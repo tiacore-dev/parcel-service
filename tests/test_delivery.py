@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
-from app.database.models import DeliveryToRecipient, Parcel
+from app.database.models import Delivery, Parcel
 
 
 @pytest.mark.asyncio
@@ -19,12 +19,12 @@ async def test_add_delivery_to_recipient(test_app: AsyncClient, jwt_token_admin,
         "recipient_name": "Тестовый получатель",
     }
 
-    response = await test_app.post("/api/delivery-to-recipient/add", headers=headers, json=data)
+    response = await test_app.post("/api/deliveries/add", headers=headers, json=data)
 
     assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
     response_data = response.json()
-    delivery = await DeliveryToRecipient.get_or_none(id=response_data["delivery_id"]).prefetch_related("parcel")
+    delivery = await Delivery.get_or_none(id=response_data["delivery_id"]).prefetch_related("parcel")
 
     assert delivery is not None
     assert delivery.recipient_name == "Тестовый получатель"
@@ -35,7 +35,7 @@ async def test_add_delivery_to_recipient(test_app: AsyncClient, jwt_token_admin,
 async def test_edit_delivery_to_recipient(
     test_app: AsyncClient,
     jwt_token_admin,
-    seed_delivery_to_recipient: DeliveryToRecipient,
+    seed_delivery_to_recipient: Delivery,
 ):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
@@ -44,14 +44,14 @@ async def test_edit_delivery_to_recipient(
     }
 
     response = await test_app.patch(
-        f"/api/delivery-to-recipient/{seed_delivery_to_recipient.id}",
+        f"/api/deliveries/{seed_delivery_to_recipient.id}",
         headers=headers,
         json=data,
     )
 
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
-    updated_delivery = await DeliveryToRecipient.get_or_none(id=seed_delivery_to_recipient.id)
+    updated_delivery = await Delivery.get_or_none(id=seed_delivery_to_recipient.id)
     assert updated_delivery is not None
     assert updated_delivery.recipient_name == "Обновлённый получатель"
 
@@ -60,11 +60,11 @@ async def test_edit_delivery_to_recipient(
 async def test_view_delivery_to_recipient(
     test_app: AsyncClient,
     jwt_token_admin,
-    seed_delivery_to_recipient: DeliveryToRecipient,
+    seed_delivery_to_recipient: Delivery,
 ):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
-    response = await test_app.get(f"/api/delivery-to-recipient/{seed_delivery_to_recipient.id}", headers=headers)
+    response = await test_app.get(f"/api/deliveries/{seed_delivery_to_recipient.id}", headers=headers)
 
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
@@ -77,28 +77,28 @@ async def test_view_delivery_to_recipient(
 async def test_delete_delivery_to_recipient(
     test_app: AsyncClient,
     jwt_token_admin,
-    seed_delivery_to_recipient: DeliveryToRecipient,
+    seed_delivery_to_recipient: Delivery,
 ):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = await test_app.delete(
-        f"/api/delivery-to-recipient/{seed_delivery_to_recipient.id}",
+        f"/api/deliveries/{seed_delivery_to_recipient.id}",
         headers=headers,
     )
 
     assert response.status_code == 204, f"Ошибка: {response.status_code}, {response.text}"
 
-    deleted = await DeliveryToRecipient.get_or_none(id=seed_delivery_to_recipient.id)
+    deleted = await Delivery.get_or_none(id=seed_delivery_to_recipient.id)
     assert deleted is None
 
 
 @pytest.mark.asyncio
 async def test_get_delivery_to_recipient_list(
-    test_app: AsyncClient, jwt_token_admin, seed_delivery_to_recipient: DeliveryToRecipient, seed_parcel: Parcel
+    test_app: AsyncClient, jwt_token_admin, seed_delivery_to_recipient: Delivery, seed_parcel: Parcel
 ):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
-    response = await test_app.get("/api/delivery-to-recipient/all", headers=headers)
+    response = await test_app.get("/api/deliveries/all", headers=headers)
 
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 

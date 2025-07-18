@@ -2,17 +2,15 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
-from tiacore_lib.utils.validate_helpers import validate_exists
 from tortoise.expressions import Q
 
-from app.database.models import Parcel, ParcelStatus, ParcelStatusEnum, ReturnToSender
-from app.handlers.status_handler import recalculate_parcel_status
+from app.database.models import ParcelStatus, Return
 from app.pydantic_models.return_models import (
-    ReturnToSenderCreateSchema,
-    ReturnToSenderEditSchema,
-    ReturnToSenderListResponseSchema,
-    ReturnToSenderResponseSchema,
-    ReturnToSenderSchema,
+    ReturnCreateSchema,
+    ReturnEditSchema,
+    ReturnListResponseSchema,
+    ReturnResponseSchema,
+    ReturnSchema,
     return_to_sender_filter_params,
 )
 
@@ -21,33 +19,22 @@ return_router = APIRouter()
 
 @return_router.post(
     "/add",
-    response_model=ReturnToSenderResponseSchema,
+    response_model=ReturnResponseSchema,
     summary="Добавить событие возврата отправителю",
     status_code=status.HTTP_201_CREATED,
 )
 async def add_return_to_sender(
-    data: ReturnToSenderCreateSchema,
+    data: ReturnCreateSchema,
     context: dict = Depends(require_permission_in_context("add_return_to_sender")),
 ):
-    await validate_exists(Parcel, data.parcel_id, "Накладная")
-    return_obj = await ReturnToSender.create(
-        created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump()
-    )
-    await ParcelStatus.create(
-        parcel_id=data.parcel_id,
-        document_id=return_obj.id,
-        document_type="return_id",
-        status=ParcelStatusEnum.RETURNED,
-        date=data.date,
-        created_by=context["user_id"],
-    )
-    await recalculate_parcel_status(data.parcel_id)
-    return ReturnToSenderResponseSchema(return_id=return_obj.id)
+    return_obj = await Return.create(created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump())
+
+    return ReturnResponseSchema(return_id=return_obj.id)
 
 
 @return_router.get(
     "/all",
-    response_model=ReturnToSenderListResponseSchema,
+    response_model=ReturnListResponseSchema,
     summary="Получение списка возвратов отправителю",
 )
 async def get_return_to_sender_list(
@@ -74,9 +61,6 @@ async def get_return_to_sender_list(
     if filters.get("sender_name"):
         query &= Q(sender_name__icontains=filters["sender_name"])
 
-    if filters.get("parcel_name"):
-        query &= Q(parcel__name__icontains=filters["parcel_name"])
-
     sort_by = filters.get("sort_by", "date")
     order = filters.get("order", "asc").lower()
     sort_field = sort_by if order == "asc" else f"-{sort_by}"
@@ -84,60 +68,68 @@ async def get_return_to_sender_list(
     page_size = filters.get("page_size", 10)
     offset = (page - 1) * page_size
 
-    total_count = await ReturnToSender.filter(query).count()
-    returns = (
-        await ReturnToSender.filter(query)
-        .prefetch_related("parcel")
-        .order_by(sort_field)
-        .offset(offset)
-        .limit(page_size)
-    )
+    total_count = await Return.filter(query).count()
+    returns = await Return.filter(query).order_by(sort_field).offset(offset).limit(page_size)
 
-    returns_data = [
-        ReturnToSenderSchema.model_validate(
-            {
-                **return_obj.__dict__,
-                "return_id": return_obj.id,
-                "parcel_name": return_obj.parcel.name if return_obj.parcel else None,
-            },
-            from_attributes=True,
-        )
-        for return_obj in returns
-    ]
-    return ReturnToSenderListResponseSchema(
+    return_schemas = []
+    for return_obj in returns:
+        parcels = []
+
+        for detail in await return_obj.return_details.all():
+            parcel = await detail.parcel
+            if parcel:
+                parcels.append(
+                    {
+                        "parcel_name": parcel.name,
+                        "places_count": parcel.places_count,
+                        "recipient_city": parcel.recipient_city,
+                        "volume": parcel.volume,
+                        "weight": parcel.weight,
+                        "recipient_additional_info": parcel.recipient_additional_info,
+                    }
+                )
+
+        return_dict = return_obj.__dict__.copy()
+
+        return_dict["parcel_count"] = len(parcels)
+        return_dict["parcels"] = parcels
+
+        return_schemas.append(ReturnSchema.model_validate(return_dict, from_attributes=True))
+
+    return ReturnListResponseSchema(
         total=total_count,
-        returns=returns_data,
+        returns=return_schemas,
     )
 
 
 @return_router.get(
     "/{return_id}",
-    response_model=ReturnToSenderSchema,
+    response_model=ReturnSchema,
     summary="Просмотр одного события возврата отправителю",
 )
 async def get_return_to_sender(
     return_id: UUID,
     _: dict = Depends(require_permission_in_context("view_return_to_sender")),
 ):
-    return_obj = await ReturnToSender.filter(id=return_id).first()
+    return_obj = await Return.filter(id=return_id).first()
 
     if not return_obj:
         raise HTTPException(status_code=404, detail="Событие не найдено")
 
-    return ReturnToSenderSchema.model_validate(return_obj, from_attributes=True)
+    return ReturnSchema.model_validate(return_obj, from_attributes=True)
 
 
 @return_router.patch(
     "/{return_id}",
-    response_model=ReturnToSenderResponseSchema,
+    response_model=ReturnResponseSchema,
     summary="Редактирование события возврата отправителю",
 )
 async def edit_return_to_sender(
     return_id: UUID,
-    data: ReturnToSenderEditSchema,
+    data: ReturnEditSchema,
     context: dict = Depends(require_permission_in_context("edit_return_to_sender")),
 ):
-    return_obj = await ReturnToSender.filter(id=return_id).prefetch_related("parcel").first()
+    return_obj = await Return.filter(id=return_id).first()
 
     if not return_obj:
         raise HTTPException(status_code=404, detail="Событие не найдено")
@@ -145,18 +137,8 @@ async def edit_return_to_sender(
     await return_obj.update_from_dict(data.model_dump(exclude_unset=True))
     return_obj.modified_by = context["user_id"]
     await return_obj.save()
-    await ParcelStatus.filter(document_id=return_id).delete()
-    await ParcelStatus.create(
-        parcel_id=return_obj.parcel.id,
-        document_id=return_obj.id,
-        document_type="return_id",
-        status=ParcelStatusEnum.RETURNED,
-        date=return_obj.date,
-        created_by=context["user_id"],
-    )
-    await recalculate_parcel_status(return_obj.parcel.id)
 
-    return ReturnToSenderResponseSchema(return_id=return_obj.id)
+    return ReturnResponseSchema(return_id=return_obj.id)
 
 
 @return_router.delete(
@@ -168,11 +150,10 @@ async def delete_return_to_sender(
     return_id: UUID,
     _: dict = Depends(require_permission_in_context("delete_return_to_sender")),
 ):
-    return_obj = await ReturnToSender.filter(id=return_id).prefetch_related("parcel").first()
+    return_obj = await Return.filter(id=return_id).first()
 
     if not return_obj:
         raise HTTPException(status_code=404, detail="Событие не найдено")
     await ParcelStatus.filter(document_id=return_id).delete()
-    await recalculate_parcel_status(return_obj.parcel.id)
     await return_obj.delete()
     return

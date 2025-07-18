@@ -6,6 +6,7 @@ from fastapi import Query
 from pydantic import BaseModel, Field
 
 from app.database.models import TransitStatusEnum
+from app.pydantic_models.parcel_models import ParcelShortSchema
 
 
 class TransitCreateSchema(BaseModel):
@@ -37,15 +38,6 @@ class TransitResponseSchema(BaseModel):
         from_attributes = True
 
 
-class TransitParcelSchema(BaseModel):
-    parcel_name: Optional[str] = Field(None)
-    places_count: Optional[int] = Field(None)
-    recipient_city: Optional[UUID] = Field(None)
-    volume: Optional[float] = Field(None)
-    weight: Optional[float] = Field(None)
-    recipient_additional_info: Optional[str] = Field(None)
-
-
 class TransitSchema(BaseModel):
     id: UUID = Field(..., alias="transit_id")
     name: str = Field(..., alias="transit_name")
@@ -54,7 +46,7 @@ class TransitSchema(BaseModel):
     date: datetime
     status: TransitStatusEnum
     parcel_count: Optional[int] = Field(None)
-    parcels: Optional[List[TransitParcelSchema]] = Field(None)
+    parcels: Optional[List[ParcelShortSchema]] = Field(None)
 
     created_at: datetime = Field(...)
     created_by: UUID = Field(...)

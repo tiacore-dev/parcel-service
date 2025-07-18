@@ -5,44 +5,38 @@ from uuid import UUID
 from fastapi import Query
 from pydantic import BaseModel, Field
 
+from app.pydantic_models.parcel_models import ParcelShortSchema
 
-class DeliveryCreateSchema(BaseModel):
-    warehouse_id: UUID
+
+class IssueCreateSchema(BaseModel):
     employee_id: UUID
     date: datetime
-    parcel_id: UUID
-    recipient_name: str = Field(..., max_length=255)
 
     class Config:
         from_attributes = True
 
 
-class DeliveryEditSchema(BaseModel):
-    warehouse_id: Optional[UUID] = None
+class IssueEditSchema(BaseModel):
     employee_id: Optional[UUID] = None
     date: Optional[datetime] = None
-    parcel_id: Optional[UUID] = None
-    recipient_name: Optional[str] = Field(None, max_length=255)
 
     class Config:
         from_attributes = True
 
 
-class DeliveryResponseSchema(BaseModel):
-    delivery_id: UUID
+class IssueResponseSchema(BaseModel):
+    issue_id: UUID
 
     class Config:
         from_attributes = True
 
 
-class DeliverySchema(BaseModel):
-    id: UUID = Field(..., alias="delivery_id")
-    warehouse_id: UUID
+class IssueSchema(BaseModel):
+    id: UUID = Field(..., alias="issue_id")
     employee_id: UUID
     date: datetime
-    parcel_id: UUID
-    recipient_name: str
     parcel_name: Optional[str] = Field(None)
+    parcels: Optional[List[ParcelShortSchema]] = Field(None)
 
     created_at: datetime = Field(...)
     created_by: UUID = Field(...)
@@ -54,23 +48,21 @@ class DeliverySchema(BaseModel):
         populate_by_name = True
 
 
-class DeliveryListResponseSchema(BaseModel):
+class IssueListResponseSchema(BaseModel):
     total: int
-    deliveries: List[DeliverySchema]
+    issues: List[IssueSchema]
 
     class Config:
         from_attributes = True
         populate_by_name = True
 
 
-def delivery_to_recipient_filter_params(
+def issue_filter_params(
     parcel_name: Optional[str] = Query(None, description="Фильтр по номеру накладной"),
     parcel_id: Optional[UUID] = Query(None, description="Фильтр по ID накладной"),
-    warehouse_id: Optional[UUID] = Query(None, description="Фильтр по ID склада"),
     employee_id: Optional[UUID] = Query(None, description="Фильтр по ID сотрудника"),
     date_from: Optional[datetime] = Query(None, description="Дата от (включительно)"),
     date_to: Optional[datetime] = Query(None, description="Дата до (включительно)"),
-    recipient_name: Optional[str] = Query(None, description="Фильтр по имени получателя"),
     sort_by: Optional[str] = Query("date", description="Поле для сортировки"),
     order: Optional[str] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1, description="Номер страницы"),
@@ -79,11 +71,9 @@ def delivery_to_recipient_filter_params(
     return {
         "parcel_name": parcel_name,
         "parcel_id": parcel_id,
-        "warehouse_id": warehouse_id,
         "employee_id": employee_id,
         "date_from": date_from,
         "date_to": date_to,
-        "recipient_name": recipient_name,
         "sort_by": sort_by,
         "order": order,
         "page": page,

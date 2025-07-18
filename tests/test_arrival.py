@@ -4,35 +4,33 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
-from app.database.models import ArrivalToWarehouse, Parcel
+from app.database.models import Arrival, Parcel
 
 
 @pytest.mark.asyncio
-async def test_add_arrival_to_warehouse(test_app: AsyncClient, jwt_token_admin, seed_parcel: Parcel):
+async def test_add_arrival(test_app: AsyncClient, jwt_token_admin):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     data = {
         "warehouse_id": str(uuid4()),
         "date": datetime.now().isoformat(),
-        "parcel_id": str(seed_parcel.id),
     }
 
-    response = await test_app.post("/api/arrival-to-warehouse/add", headers=headers, json=data)
+    response = await test_app.post("/api/arrivals/add", headers=headers, json=data)
 
     assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
     response_data = response.json()
-    arrival = await ArrivalToWarehouse.get_or_none(id=response_data["arrival_id"]).prefetch_related("parcel")
+    arrival = await Arrival.get_or_none(id=response_data["arrival_id"])
 
     assert arrival is not None
-    assert arrival.parcel.id == seed_parcel.id
 
 
 @pytest.mark.asyncio
-async def test_edit_arrival_to_warehouse(
+async def test_edit_arrival(
     test_app: AsyncClient,
     jwt_token_admin,
-    seed_arrival_to_warehouse: ArrivalToWarehouse,
+    seed_arrival: Arrival,
 ):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
@@ -41,60 +39,58 @@ async def test_edit_arrival_to_warehouse(
     }
 
     response = await test_app.patch(
-        f"/api/arrival-to-warehouse/{seed_arrival_to_warehouse.id}",
+        f"/api/arrivals/{seed_arrival.id}",
         headers=headers,
         json=data,
     )
 
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
-    updated_arrival = await ArrivalToWarehouse.get_or_none(id=seed_arrival_to_warehouse.id)
+    updated_arrival = await Arrival.get_or_none(id=seed_arrival.id)
     assert updated_arrival is not None
     assert str(updated_arrival.warehouse_id) == data["warehouse_id"]
 
 
 @pytest.mark.asyncio
-async def test_view_arrival_to_warehouse(
+async def test_view_arrival(
     test_app: AsyncClient,
     jwt_token_admin,
-    seed_arrival_to_warehouse: ArrivalToWarehouse,
+    seed_arrival: Arrival,
 ):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
-    response = await test_app.get(f"/api/arrival-to-warehouse/{seed_arrival_to_warehouse.id}", headers=headers)
+    response = await test_app.get(f"/api/arrivals/{seed_arrival.id}", headers=headers)
 
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
     data = response.json()
-    assert data["arrival_id"] == str(seed_arrival_to_warehouse.id)
+    assert data["arrival_id"] == str(seed_arrival.id)
 
 
 @pytest.mark.asyncio
-async def test_delete_arrival_to_warehouse(
+async def test_delete_arrival(
     test_app: AsyncClient,
     jwt_token_admin,
-    seed_arrival_to_warehouse: ArrivalToWarehouse,
+    seed_arrival: Arrival,
 ):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = await test_app.delete(
-        f"/api/arrival-to-warehouse/{seed_arrival_to_warehouse.id}",
+        f"/api/arrivals/{seed_arrival.id}",
         headers=headers,
     )
 
     assert response.status_code == 204, f"Ошибка: {response.status_code}, {response.text}"
 
-    deleted = await ArrivalToWarehouse.get_or_none(id=seed_arrival_to_warehouse.id)
+    deleted = await Arrival.get_or_none(id=seed_arrival.id)
     assert deleted is None
 
 
 @pytest.mark.asyncio
-async def test_get_arrival_to_warehouse_list(
-    test_app: AsyncClient, jwt_token_admin, seed_arrival_to_warehouse: ArrivalToWarehouse, seed_parcel: Parcel
-):
+async def test_get_arrival_list(test_app: AsyncClient, jwt_token_admin, seed_arrival: Arrival, seed_parcel: Parcel):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     query_params = {"parcel_name": seed_parcel.name}
-    response = await test_app.get("/api/arrival-to-warehouse/all", headers=headers, params=query_params)
+    response = await test_app.get("/api/arrivals/all", headers=headers, params=query_params)
 
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
@@ -103,5 +99,4 @@ async def test_get_arrival_to_warehouse_list(
 
     assert data["total"] >= 1
     assert isinstance(arrivals, list)
-    assert any(arrival["arrival_id"] == str(seed_arrival_to_warehouse.id) for arrival in arrivals)
-    assert any(arrival["parcel_name"] == seed_parcel.name for arrival in arrivals)
+    assert any(arrival["arrival_id"] == str(seed_arrival.id) for arrival in arrivals)

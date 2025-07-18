@@ -6,74 +6,73 @@ from fastapi import Query
 from pydantic import BaseModel, Field
 
 
-class IssueToEmployeeCreateSchema(BaseModel):
-    employee_id: UUID
-    date: datetime
+class ArrivalDetailsCreateSchema(BaseModel):
+    arrival_id: UUID
     parcel_id: UUID
 
     class Config:
         from_attributes = True
 
 
-class IssueToEmployeeEditSchema(BaseModel):
-    employee_id: Optional[UUID] = None
-    date: Optional[datetime] = None
+class ArrivalDetailsEditSchema(BaseModel):
+    arrival_id: Optional[UUID] = None
     parcel_id: Optional[UUID] = None
 
     class Config:
         from_attributes = True
 
 
-class IssueToEmployeeResponseSchema(BaseModel):
-    issue_id: UUID
+class ArrivalDetailsResponseSchema(BaseModel):
+    details_id: UUID
 
     class Config:
         from_attributes = True
 
 
-class IssueToEmployeeSchema(BaseModel):
-    id: UUID = Field(..., alias="issue_id")
-    employee_id: UUID
-    date: datetime
+class ArrivalDetailsSchema(BaseModel):
+    id: UUID = Field(..., alias="details_id")
+    arrival_id: UUID
     parcel_id: UUID
-    parcel_name: Optional[str] = Field(None)
 
     created_at: datetime = Field(...)
     created_by: UUID = Field(...)
     modified_at: datetime = Field(...)
     modified_by: UUID = Field(...)
 
+    parcel_name: Optional[str] = Field(None)
+    places_count: Optional[int] = Field(None)
+    recipient_city: Optional[UUID] = Field(None)
+    volume: Optional[float] = Field(None)
+    weight: Optional[float] = Field(None)
+    recipient_additional_info: Optional[str] = Field(None)
+
     class Config:
         from_attributes = True
         populate_by_name = True
 
 
-class IssueToEmployeeListResponseSchema(BaseModel):
+class ArrivalDetailsListResponseSchema(BaseModel):
     total: int
-    issues: List[IssueToEmployeeSchema]
+    details: List[ArrivalDetailsSchema]
 
     class Config:
         from_attributes = True
         populate_by_name = True
 
 
-def issue_to_employee_filter_params(
+def arrival_details_filter_params(
     parcel_name: Optional[str] = Query(None, description="Фильтр по номеру накладной"),
+    arrival_id: Optional[UUID] = Query(None, description="Фильтр по ID транзита"),
     parcel_id: Optional[UUID] = Query(None, description="Фильтр по ID накладной"),
-    employee_id: Optional[UUID] = Query(None, description="Фильтр по ID сотрудника"),
-    date_from: Optional[datetime] = Query(None, description="Дата от (включительно)"),
-    date_to: Optional[datetime] = Query(None, description="Дата до (включительно)"),
-    sort_by: Optional[str] = Query("date", description="Поле для сортировки"),
+    sort_by: Optional[str] = Query("id", description="Поле для сортировки"),
     order: Optional[str] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1, description="Номер страницы"),
     page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),
 ):
     return {
         "parcel_name": parcel_name,
+        "arrival_id": arrival_id,
         "parcel_id": parcel_id,
-        "employee_id": employee_id,
-        "date_from": date_from,
-        "date_to": date_to,
         "sort_by": sort_by,
         "order": order,
         "page": page,

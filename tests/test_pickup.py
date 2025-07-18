@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
-from app.database.models import Parcel, PickupFromSender
+from app.database.models import Parcel, Pickup
 
 
 @pytest.mark.asyncio
@@ -19,12 +19,12 @@ async def test_add_pickup_from_sender(test_app: AsyncClient, jwt_token_admin, se
         "sender_name": "Тестовый отправитель",
     }
 
-    response = await test_app.post("/api/pickup-from-sender/add", headers=headers, json=data)
+    response = await test_app.post("/api/pickups/add", headers=headers, json=data)
 
     assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
     response_data = response.json()
-    pickup = await PickupFromSender.get_or_none(id=response_data["pickup_id"]).prefetch_related("parcel")
+    pickup = await Pickup.get_or_none(id=response_data["pickup_id"]).prefetch_related("parcel")
 
     assert pickup is not None
     assert pickup.sender_name == "Тестовый отправитель"
@@ -32,9 +32,7 @@ async def test_add_pickup_from_sender(test_app: AsyncClient, jwt_token_admin, se
 
 
 @pytest.mark.asyncio
-async def test_edit_pickup_from_sender(
-    test_app: AsyncClient, jwt_token_admin, seed_pickup_from_sender: PickupFromSender
-):
+async def test_edit_pickup_from_sender(test_app: AsyncClient, jwt_token_admin, seed_pickup_from_sender: Pickup):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     data = {
@@ -42,25 +40,23 @@ async def test_edit_pickup_from_sender(
     }
 
     response = await test_app.patch(
-        f"/api/pickup-from-sender/{seed_pickup_from_sender.id}",
+        f"/api/pickups/{seed_pickup_from_sender.id}",
         headers=headers,
         json=data,
     )
 
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
-    updated_pickup = await PickupFromSender.get_or_none(id=seed_pickup_from_sender.id)
+    updated_pickup = await Pickup.get_or_none(id=seed_pickup_from_sender.id)
     assert updated_pickup is not None
     assert updated_pickup.sender_name == "Обновлённый отправитель"
 
 
 @pytest.mark.asyncio
-async def test_view_pickup_from_sender(
-    test_app: AsyncClient, jwt_token_admin, seed_pickup_from_sender: PickupFromSender
-):
+async def test_view_pickup_from_sender(test_app: AsyncClient, jwt_token_admin, seed_pickup_from_sender: Pickup):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
-    response = await test_app.get(f"/api/pickup-from-sender/{seed_pickup_from_sender.id}", headers=headers)
+    response = await test_app.get(f"/api/pickups/{seed_pickup_from_sender.id}", headers=headers)
 
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
@@ -70,29 +66,27 @@ async def test_view_pickup_from_sender(
 
 
 @pytest.mark.asyncio
-async def test_delete_pickup_from_sender(
-    test_app: AsyncClient, jwt_token_admin, seed_pickup_from_sender: PickupFromSender
-):
+async def test_delete_pickup_from_sender(test_app: AsyncClient, jwt_token_admin, seed_pickup_from_sender: Pickup):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = await test_app.delete(
-        f"/api/pickup-from-sender/{seed_pickup_from_sender.id}",
+        f"/api/pickups/{seed_pickup_from_sender.id}",
         headers=headers,
     )
 
     assert response.status_code == 204, f"Ошибка: {response.status_code}, {response.text}"
 
-    deleted = await PickupFromSender.get_or_none(id=seed_pickup_from_sender.id)
+    deleted = await Pickup.get_or_none(id=seed_pickup_from_sender.id)
     assert deleted is None
 
 
 @pytest.mark.asyncio
 async def test_get_pickup_from_sender_list(
-    test_app: AsyncClient, jwt_token_admin, seed_pickup_from_sender: PickupFromSender, seed_parcel: Parcel
+    test_app: AsyncClient, jwt_token_admin, seed_pickup_from_sender: Pickup, seed_parcel: Parcel
 ):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
-    response = await test_app.get("/api/pickup-from-sender/all", headers=headers)
+    response = await test_app.get("/api/pickups/all", headers=headers)
 
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 

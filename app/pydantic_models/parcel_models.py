@@ -180,6 +180,15 @@ class ParcelResponseSchema(BaseModel):
         from_attributes = True
 
 
+class ParcelShortSchema(BaseModel):
+    parcel_name: Optional[str] = Field(None)
+    places_count: Optional[int] = Field(None)
+    recipient_city: Optional[UUID] = Field(None)
+    volume: Optional[float] = Field(None)
+    weight: Optional[float] = Field(None)
+    recipient_additional_info: Optional[str] = Field(None)
+
+
 class ParcelSchema(BaseModel):
     id: UUID = Field(..., alias="parcel_id")
     name: str = Field(..., alias="parcel_name")

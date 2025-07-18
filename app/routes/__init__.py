@@ -7,15 +7,18 @@ from tiacore_lib.routes.reset_password_route import reset_router
 from tiacore_lib.routes.role_route import role_router
 from tiacore_lib.routes.user_route import user_router
 
-from .arrival_warehouse_route import arrival_to_warehouse_router
+from .arrival_details_route import arrival_details_router
+from .arrival_route import arrival_router
 from .cargo_type_route import cargo_type_router
 from .delivery_route import delivery_router
-from .issue_to_employee import issue_to_employee_router
+from .issue_details_route import issue_details_router
+from .issue_route import issue_router
 from .parcel_cargo_route import parcel_cargo_router
 from .parcel_product_route import parcel_product_router
 from .parcel_route import parcel_router
 from .parcel_status_route import parcel_status_router
 from .pickup_route import pickup_router
+from .return_details_route import return_details_router
 from .return_route import return_router
 from .statuses_route import status_router
 from .transit_detail_route import transit_details_router
@@ -39,24 +42,27 @@ def register_routes(app: FastAPI):
     app.include_router(status_router, prefix="/api/statuses", tags=["StatusEnum"])
     app.include_router(
         pickup_router,
-        prefix="/api/pickup-from-sender",
-        tags=["Pickup"],
+        prefix="/api/pickups",
+        tags=["Pickups"],
     )
     app.include_router(
         delivery_router,
-        prefix="/api/delivery-to-recipient",
-        tags=["DeliveryToRecipient"],
+        prefix="/api/deliveries",
+        tags=["Deliveries"],
     )
-    app.include_router(return_router, prefix="/api/return", tags=["Return"])
+    app.include_router(return_router, prefix="/api/returns", tags=["Returns"])
+    app.include_router(return_details_router, prefix="/api/return-details", tags=["ReturnDetails"])
     app.include_router(
-        arrival_to_warehouse_router,
-        prefix="/api/arrival-to-warehouse",
-        tags=["ArrivalToWarehouse"],
+        arrival_router,
+        prefix="/api/arrivals",
+        tags=["Arrivals"],
     )
+    app.include_router(arrival_details_router, prefix="/api/arrival-details", tags=["ArrivalDetails"])
     app.include_router(
-        issue_to_employee_router,
-        prefix="/api/issue-to-employee",
-        tags=["IssueToEmployee"],
+        issue_router,
+        prefix="/api/issues",
+        tags=["Issues"],
     )
-    app.include_router(transit_router, prefix="/api/transit", tags=["Transit"])
+    app.include_router(issue_details_router, prefix="/api/issue-details", tags=["IssueDetails"])
+    app.include_router(transit_router, prefix="/api/transit", tags=["Transits"])
     app.include_router(transit_details_router, prefix="/api/transit-details", tags=["TransitDetails"])

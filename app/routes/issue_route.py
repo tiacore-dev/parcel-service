@@ -1,0 +1,159 @@
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from tiacore_lib.handlers.dependency_handler import require_permission_in_context
+from tortoise.expressions import Q
+
+from app.database.models import Issue, ParcelStatus
+from app.pydantic_models.issue_models import (
+    IssueCreateSchema,
+    IssueEditSchema,
+    IssueListResponseSchema,
+    IssueResponseSchema,
+    IssueSchema,
+    issue_filter_params,
+)
+
+issue_router = APIRouter()
+
+
+@issue_router.post(
+    "/add",
+    response_model=IssueResponseSchema,
+    summary="Добавить событие выдачи сотруднику",
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_issue(
+    data: IssueCreateSchema,
+    context: dict = Depends(require_permission_in_context("add_issue")),
+):
+    issue = await Issue.create(created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump())
+
+    return IssueResponseSchema(issue_id=issue.id)
+
+
+@issue_router.get(
+    "/all",
+    response_model=IssueListResponseSchema,
+    summary="Получение списка выдач сотруднику",
+)
+async def get_issue_list(
+    filters: dict = Depends(issue_filter_params),
+    _: dict = Depends(require_permission_in_context("get_all_issues")),
+):
+    query = Q()
+
+    if filters.get("parcel_id"):
+        query &= Q(parcel_id=filters["parcel_id"])
+
+    if filters.get("employee_id"):
+        query &= Q(employee_id=filters["employee_id"])
+
+    if filters.get("date_from"):
+        query &= Q(date__gte=filters["date_from"])
+
+    if filters.get("date_to"):
+        query &= Q(date__lte=filters["date_to"])
+
+    sort_by = filters.get("sort_by", "date")
+    order = filters.get("order", "asc").lower()
+    sort_field = sort_by if order == "asc" else f"-{sort_by}"
+    page = filters.get("page", 1)
+    page_size = filters.get("page_size", 10)
+    offset = (page - 1) * page_size
+
+    total_count = await Issue.filter(query).count()
+    issues = (
+        await Issue.filter(query)
+        .prefetch_related("issue_details__parcel")
+        .order_by(sort_field)
+        .offset(offset)
+        .limit(page_size)
+    )
+
+    issue_schemas = []
+    for issue in issues:
+        parcels = []
+
+        for detail in await issue.issue_details.all():
+            parcel = await detail.parcel
+            if parcel:
+                parcels.append(
+                    {
+                        "parcel_name": parcel.name,
+                        "places_count": parcel.places_count,
+                        "recipient_city": parcel.recipient_city,
+                        "volume": parcel.volume,
+                        "weight": parcel.weight,
+                        "recipient_additional_info": parcel.recipient_additional_info,
+                    }
+                )
+
+        issue_dict = issue.__dict__.copy()
+        issue_dict["parcel_count"] = len(parcels)
+        issue_dict["parcels"] = parcels
+
+        issue_schemas.append(IssueSchema.model_validate(issue_dict, from_attributes=True))
+
+    return IssueListResponseSchema(
+        total=total_count,
+        issues=issue_schemas,
+    )
+
+
+@issue_router.get(
+    "/{issue_id}",
+    response_model=IssueSchema,
+    summary="Просмотр одного события выдачи сотруднику",
+)
+async def get_issue(
+    issue_id: UUID,
+    _: dict = Depends(require_permission_in_context("view_issue")),
+):
+    issue = await Issue.filter(id=issue_id).first()
+
+    if not issue:
+        raise HTTPException(status_code=404, detail="Событие не найдено")
+
+    return IssueSchema.model_validate(issue, from_attributes=True)
+
+
+@issue_router.patch(
+    "/{issue_id}",
+    response_model=IssueResponseSchema,
+    summary="Редактирование события выдачи сотруднику",
+)
+async def edit_issue(
+    issue_id: UUID,
+    data: IssueEditSchema,
+    context: dict = Depends(require_permission_in_context("edit_issue")),
+):
+    issue = await Issue.filter(id=issue_id).first()
+
+    if not issue:
+        raise HTTPException(status_code=404, detail="Событие не найдено")
+
+    await issue.update_from_dict(data.model_dump(exclude_unset=True))
+    issue.modified_by = context["user_id"]
+    await issue.save()
+    return IssueResponseSchema(issue_id=issue.id)
+
+
+@issue_router.delete(
+    "/{issue_id}",
+    summary="Удаление события выдачи сотруднику",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_issue(
+    issue_id: UUID,
+    _: dict = Depends(require_permission_in_context("delete_issue")),
+):
+    issue = await Issue.filter(id=issue_id).first()
+
+    if not issue:
+        raise HTTPException(status_code=404, detail="Событие не найдено")
+    await ParcelStatus.filter(document_id=issue_id).delete()
+
+    await issue.delete()
+
+    return

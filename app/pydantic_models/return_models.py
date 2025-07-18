@@ -5,44 +5,43 @@ from uuid import UUID
 from fastapi import Query
 from pydantic import BaseModel, Field
 
+from app.pydantic_models.parcel_models import ParcelShortSchema
 
-class ReturnToSenderCreateSchema(BaseModel):
+
+class ReturnCreateSchema(BaseModel):
     warehouse_id: UUID
     employee_id: UUID
     date: datetime
-    parcel_id: UUID
     sender_name: str = Field(..., max_length=255)
 
     class Config:
         from_attributes = True
 
 
-class ReturnToSenderEditSchema(BaseModel):
+class ReturnEditSchema(BaseModel):
     warehouse_id: Optional[UUID] = None
     employee_id: Optional[UUID] = None
     date: Optional[datetime] = None
-    parcel_id: Optional[UUID] = None
     sender_name: Optional[str] = Field(None, max_length=255)
 
     class Config:
         from_attributes = True
 
 
-class ReturnToSenderResponseSchema(BaseModel):
+class ReturnResponseSchema(BaseModel):
     return_id: UUID
 
     class Config:
         from_attributes = True
 
 
-class ReturnToSenderSchema(BaseModel):
+class ReturnSchema(BaseModel):
     id: UUID = Field(..., alias="return_id")
     warehouse_id: UUID
     employee_id: UUID
     date: datetime
-    parcel_id: UUID
-    sender_name: str
-    parcel_name: Optional[str] = Field(None)
+    sender_name: str = Field(..., max_length=255)
+    parcels: Optional[List[ParcelShortSchema]] = Field(None)
 
     created_at: datetime = Field(...)
     created_by: UUID = Field(...)
@@ -54,9 +53,9 @@ class ReturnToSenderSchema(BaseModel):
         populate_by_name = True
 
 
-class ReturnToSenderListResponseSchema(BaseModel):
+class ReturnListResponseSchema(BaseModel):
     total: int
-    returns: List[ReturnToSenderSchema]
+    returns: List[ReturnSchema]
 
     class Config:
         from_attributes = True

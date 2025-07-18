@@ -99,8 +99,6 @@ async def get_transit_list(
                 )
 
         transit_dict = transit.__dict__.copy()
-        transit_dict["transit_id"] = transit.id
-        transit_dict["transit_name"] = transit.name
         transit_dict["parcel_count"] = len(parcels)
         transit_dict["parcels"] = parcels
 

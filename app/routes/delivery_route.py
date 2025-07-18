@@ -6,18 +6,18 @@ from tiacore_lib.utils.validate_helpers import validate_exists
 from tortoise.expressions import Q
 
 from app.database.models import (
-    DeliveryToRecipient,
+    Delivery,
     Parcel,
     ParcelStatus,
     ParcelStatusEnum,
 )
 from app.handlers.status_handler import recalculate_parcel_status
 from app.pydantic_models.delivery_models import (
-    DeliveryToRecipientCreateSchema,
-    DeliveryToRecipientEditSchema,
-    DeliveryToRecipientListResponseSchema,
-    DeliveryToRecipientResponseSchema,
-    DeliveryToRecipientSchema,
+    DeliveryCreateSchema,
+    DeliveryEditSchema,
+    DeliveryListResponseSchema,
+    DeliveryResponseSchema,
+    DeliverySchema,
     delivery_to_recipient_filter_params,
 )
 
@@ -26,18 +26,16 @@ delivery_router = APIRouter()
 
 @delivery_router.post(
     "/add",
-    response_model=DeliveryToRecipientResponseSchema,
+    response_model=DeliveryResponseSchema,
     summary="Добавить событие доставки получателю",
     status_code=status.HTTP_201_CREATED,
 )
 async def add_delivery_to_recipient(
-    data: DeliveryToRecipientCreateSchema,
+    data: DeliveryCreateSchema,
     context: dict = Depends(require_permission_in_context("add_delivery_to_recipient")),
 ):
     await validate_exists(Parcel, data.parcel_id, "Накладная")
-    delivery = await DeliveryToRecipient.create(
-        created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump()
-    )
+    delivery = await Delivery.create(created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump())
     await ParcelStatus.create(
         parcel_id=data.parcel_id,
         document_id=delivery.id,
@@ -47,12 +45,12 @@ async def add_delivery_to_recipient(
         created_by=context["user_id"],
     )
     await recalculate_parcel_status(data.parcel_id)
-    return DeliveryToRecipientResponseSchema(delivery_id=delivery.id)
+    return DeliveryResponseSchema(delivery_id=delivery.id)
 
 
 @delivery_router.get(
     "/all",
-    response_model=DeliveryToRecipientListResponseSchema,
+    response_model=DeliveryListResponseSchema,
     summary="Получение списка событий доставки получателю",
 )
 async def get_delivery_to_recipient_list(
@@ -89,17 +87,13 @@ async def get_delivery_to_recipient_list(
     page_size = filters.get("page_size", 10)
     offset = (page - 1) * page_size
 
-    total_count = await DeliveryToRecipient.filter(query).count()
+    total_count = await Delivery.filter(query).count()
     deliveries = (
-        await DeliveryToRecipient.filter(query)
-        .prefetch_related("parcel")
-        .order_by(sort_field)
-        .offset(offset)
-        .limit(page_size)
+        await Delivery.filter(query).prefetch_related("parcel").order_by(sort_field).offset(offset).limit(page_size)
     )
 
     delivery_data = [
-        DeliveryToRecipientSchema.model_validate(
+        DeliverySchema.model_validate(
             {
                 **delivery.__dict__,
                 "delivery_id": delivery.id,
@@ -109,7 +103,7 @@ async def get_delivery_to_recipient_list(
         )
         for delivery in deliveries
     ]
-    return DeliveryToRecipientListResponseSchema(
+    return DeliveryListResponseSchema(
         total=total_count,
         deliveries=delivery_data,
     )
@@ -117,32 +111,32 @@ async def get_delivery_to_recipient_list(
 
 @delivery_router.get(
     "/{delivery_id}",
-    response_model=DeliveryToRecipientSchema,
+    response_model=DeliverySchema,
     summary="Просмотр одного события доставки получателю",
 )
 async def get_delivery_to_recipient(
     delivery_id: UUID,
     _: dict = Depends(require_permission_in_context("view_delivery_to_recipient")),
 ):
-    delivery = await DeliveryToRecipient.filter(id=delivery_id).first()
+    delivery = await Delivery.filter(id=delivery_id).first()
 
     if not delivery:
         raise HTTPException(status_code=404, detail="Событие не найдено")
 
-    return DeliveryToRecipientSchema.model_validate(delivery, from_attributes=True)
+    return DeliverySchema.model_validate(delivery, from_attributes=True)
 
 
 @delivery_router.patch(
     "/{delivery_id}",
-    response_model=DeliveryToRecipientResponseSchema,
+    response_model=DeliveryResponseSchema,
     summary="Редактирование события доставки получателю",
 )
 async def edit_delivery_to_recipient(
     delivery_id: UUID,
-    data: DeliveryToRecipientEditSchema,
+    data: DeliveryEditSchema,
     context: dict = Depends(require_permission_in_context("edit_delivery_to_recipient")),
 ):
-    delivery = await DeliveryToRecipient.filter(id=delivery_id).prefetch_related("parcel").first()
+    delivery = await Delivery.filter(id=delivery_id).prefetch_related("parcel").first()
 
     if not delivery:
         raise HTTPException(status_code=404, detail="Событие не найдено")
@@ -161,7 +155,7 @@ async def edit_delivery_to_recipient(
     )
     await recalculate_parcel_status(delivery.parcel.id)
 
-    return DeliveryToRecipientResponseSchema(delivery_id=delivery.id)
+    return DeliveryResponseSchema(delivery_id=delivery.id)
 
 
 @delivery_router.delete(
@@ -173,7 +167,7 @@ async def delete_delivery_to_recipient(
     delivery_id: UUID,
     _: dict = Depends(require_permission_in_context("delete_delivery_to_recipient")),
 ):
-    delivery = await DeliveryToRecipient.filter(id=delivery_id).prefetch_related("parcel").first()
+    delivery = await Delivery.filter(id=delivery_id).prefetch_related("parcel").first()
 
     if not delivery:
         raise HTTPException(status_code=404, detail="Событие не найдено")

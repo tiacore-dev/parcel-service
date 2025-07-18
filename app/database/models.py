@@ -205,12 +205,12 @@ class ParcelStatus(Model):
         table = "parcel_statuses"
 
 
-class PickupFromSender(Model):
+class Pickup(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    parcel = fields.ForeignKeyField("models.Parcel", related_name="pickup_events")
     warehouse_id = fields.UUIDField(null=True)
     employee_id = fields.UUIDField()
     date = fields.DatetimeField()
-    parcel = fields.ForeignKeyField("models.Parcel", related_name="pickup_events")
     sender_name = fields.CharField(max_length=255)
 
     created_at = fields.DatetimeField(auto_now_add=True)
@@ -219,15 +219,15 @@ class PickupFromSender(Model):
     modified_by = fields.UUIDField()
 
     class Meta:
-        table = "pickup_from_sender"
+        table = "pickups"
 
 
-class DeliveryToRecipient(Model):
+class Delivery(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    parcel = fields.ForeignKeyField("models.Parcel", related_name="delivery_events")
     warehouse_id = fields.UUIDField()
     employee_id = fields.UUIDField()
     date = fields.DatetimeField()
-    parcel = fields.ForeignKeyField("models.Parcel", related_name="delivery_events")
     recipient_name = fields.CharField(max_length=255)
 
     created_at = fields.DatetimeField(auto_now_add=True)
@@ -236,15 +236,14 @@ class DeliveryToRecipient(Model):
     modified_by = fields.UUIDField()
 
     class Meta:
-        table = "delivery_to_recipient"
+        table = "deliveries"
 
 
-class ReturnToSender(Model):
+class Return(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
     warehouse_id = fields.UUIDField()
     employee_id = fields.UUIDField()
     date = fields.DatetimeField()
-    parcel = fields.ForeignKeyField("models.Parcel", related_name="return_events")
     sender_name = fields.CharField(max_length=255)
 
     created_at = fields.DatetimeField(auto_now_add=True)
@@ -252,15 +251,46 @@ class ReturnToSender(Model):
     modified_at = fields.DatetimeField(auto_now=True)
     modified_by = fields.UUIDField()
 
+    return_details: ReverseRelation["ReturnDetails"]
+
     class Meta:
-        table = "return_to_sender"
+        table = "returns"
 
 
-class ArrivalToWarehouse(Model):
+class ReturnDetails(Model):
+    id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    parcel = fields.ForeignKeyField("models.Parcel", related_name="return_events")
+    returns = fields.ForeignKeyField("models.Return", related_name="return_details")
+
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
+    modified_at = fields.DatetimeField(auto_now=True)
+    modified_by = fields.UUIDField()
+
+    class Meta:
+        table = "return_details"
+
+
+class Arrival(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
     warehouse_id = fields.UUIDField()
     date = fields.DatetimeField()
+
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
+    modified_at = fields.DatetimeField(auto_now=True)
+    modified_by = fields.UUIDField()
+
+    arrival_details: ReverseRelation["ArrivalDetails"]
+
+    class Meta:
+        table = "arrivals"
+
+
+class ArrivalDetails(Model):
+    id = fields.UUIDField(pk=True, default=uuid.uuid4)
     parcel = fields.ForeignKeyField("models.Parcel", related_name="arrival_events")
+    arrival = fields.ForeignKeyField("models.Arrival", related_name="arrival_details")
 
     created_at = fields.DatetimeField(auto_now_add=True)
     created_by = fields.UUIDField()
@@ -268,14 +298,29 @@ class ArrivalToWarehouse(Model):
     modified_by = fields.UUIDField()
 
     class Meta:
-        table = "arrival_to_warehouse"
+        table = "arrival_details"
 
 
-class IssueToEmployee(Model):
+class Issue(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
     employee_id = fields.UUIDField()
     date = fields.DatetimeField()
+
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
+    modified_at = fields.DatetimeField(auto_now=True)
+    modified_by = fields.UUIDField()
+
+    issue_details: ReverseRelation["IssueDetails"]
+
+    class Meta:
+        table = "issues"
+
+
+class IssueDetails(Model):
+    id = fields.UUIDField(pk=True, default=uuid.uuid4)
     parcel = fields.ForeignKeyField("models.Parcel", related_name="issue_events")
+    issue = fields.ForeignKeyField("models.Issue", related_name="issue_details")
 
     created_at = fields.DatetimeField(auto_now_add=True)
     created_by = fields.UUIDField()
@@ -283,7 +328,7 @@ class IssueToEmployee(Model):
     modified_by = fields.UUIDField()
 
     class Meta:
-        table = "issue_to_employee"
+        table = "issue_details"
 
 
 class Transit(Model):
@@ -302,7 +347,7 @@ class Transit(Model):
     transit_details: ReverseRelation["TransitDetails"]
 
     class Meta:
-        table = "transit"
+        table = "transits"
 
 
 class TransitDetails(Model):

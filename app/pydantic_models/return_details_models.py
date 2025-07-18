@@ -6,74 +6,73 @@ from fastapi import Query
 from pydantic import BaseModel, Field
 
 
-class ArrivalToWarehouseCreateSchema(BaseModel):
-    warehouse_id: UUID
-    date: datetime
+class ReturnDetailsCreateSchema(BaseModel):
+    returns_id: UUID
     parcel_id: UUID
 
     class Config:
         from_attributes = True
 
 
-class ArrivalToWarehouseEditSchema(BaseModel):
-    warehouse_id: Optional[UUID] = None
-    date: Optional[datetime] = None
+class ReturnDetailsEditSchema(BaseModel):
+    returns_id: Optional[UUID] = None
     parcel_id: Optional[UUID] = None
 
     class Config:
         from_attributes = True
 
 
-class ArrivalToWarehouseResponseSchema(BaseModel):
-    arrival_id: UUID
+class ReturnDetailsResponseSchema(BaseModel):
+    details_id: UUID
 
     class Config:
         from_attributes = True
 
 
-class ArrivalToWarehouseSchema(BaseModel):
-    id: UUID = Field(..., alias="arrival_id")
-    warehouse_id: UUID
-    date: datetime
+class ReturnDetailsSchema(BaseModel):
+    id: UUID = Field(..., alias="details_id")
+    returns_id: UUID
     parcel_id: UUID
-    parcel_name: Optional[str] = Field(None)
 
     created_at: datetime = Field(...)
     created_by: UUID = Field(...)
     modified_at: datetime = Field(...)
     modified_by: UUID = Field(...)
 
+    parcel_name: Optional[str] = Field(None)
+    places_count: Optional[int] = Field(None)
+    recipient_city: Optional[UUID] = Field(None)
+    volume: Optional[float] = Field(None)
+    weight: Optional[float] = Field(None)
+    recipient_additional_info: Optional[str] = Field(None)
+
     class Config:
         from_attributes = True
         populate_by_name = True
 
 
-class ArrivalToWarehouseListResponseSchema(BaseModel):
+class ReturnDetailsListResponseSchema(BaseModel):
     total: int
-    arrivals: List[ArrivalToWarehouseSchema]
+    details: List[ReturnDetailsSchema]
 
     class Config:
         from_attributes = True
         populate_by_name = True
 
 
-def arrival_to_warehouse_filter_params(
+def return_details_filter_params(
     parcel_name: Optional[str] = Query(None, description="Фильтр по номеру накладной"),
+    return_id: Optional[UUID] = Query(None, description="Фильтр по ID транзита"),
     parcel_id: Optional[UUID] = Query(None, description="Фильтр по ID накладной"),
-    warehouse_id: Optional[UUID] = Query(None, description="Фильтр по ID склада"),
-    date_from: Optional[datetime] = Query(None, description="Дата от (включительно)"),
-    date_to: Optional[datetime] = Query(None, description="Дата до (включительно)"),
-    sort_by: Optional[str] = Query("date", description="Поле для сортировки"),
+    sort_by: Optional[str] = Query("id", description="Поле для сортировки"),
     order: Optional[str] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1, description="Номер страницы"),
     page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),
 ):
     return {
         "parcel_name": parcel_name,
+        "return_id": return_id,
         "parcel_id": parcel_id,
-        "warehouse_id": warehouse_id,
-        "date_from": date_from,
-        "date_to": date_to,
         "sort_by": sort_by,
         "order": order,
         "page": page,
