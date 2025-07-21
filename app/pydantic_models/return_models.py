@@ -52,7 +52,7 @@ class ReturnSchema(BaseModel):
     employee_id: UUID
     date: datetime
     sender_name: str = Field(..., max_length=255)
-    parcel_count: Optional[str] = Field(None)
+    parcel_count: Optional[int] = Field(None)
     parcels: Optional[List[ParcelShortSchema]] = Field(None)
 
     created_at: datetime = Field(...)

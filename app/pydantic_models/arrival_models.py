@@ -44,7 +44,7 @@ class ArrivalSchema(BaseModel):
     id: UUID = Field(..., alias="arrival_id")
     warehouse_id: UUID
     date: datetime
-    parcel_count: Optional[str] = Field(None)
+    parcel_count: Optional[int] = Field(None)
     parcels: Optional[List[ParcelShortSchema]] = Field(None)
 
     created_at: datetime = Field(...)
