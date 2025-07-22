@@ -62,7 +62,7 @@ class ReturnDetailsListResponseSchema(BaseModel):
 
 def return_details_filter_params(
     parcel_name: Optional[str] = Query(None, description="Фильтр по номеру накладной"),
-    return_id: Optional[UUID] = Query(None, description="Фильтр по ID транзита"),
+    returns_id: Optional[UUID] = Query(None, description="Фильтр по ID транзита"),
     parcel_id: Optional[UUID] = Query(None, description="Фильтр по ID накладной"),
     sort_by: Optional[str] = Query("id", description="Поле для сортировки"),
     order: Optional[str] = Query("asc", description="asc/desc"),
@@ -71,7 +71,7 @@ def return_details_filter_params(
 ):
     return {
         "parcel_name": parcel_name,
-        "return_id": return_id,
+        "returns_id": returns_id,
         "parcel_id": parcel_id,
         "sort_by": sort_by,
         "order": order,
