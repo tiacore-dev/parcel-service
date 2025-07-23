@@ -1,10 +1,12 @@
 services:
   redis:
-      image: redis:7-alpine
-      container_name: redis-parcel-${CONFIG_NAME}
-      restart: always
-      networks:
-      - parcel_network
+    image: redis:7-alpine
+    container_name: redis-parcel-${CONFIG_NAME}
+    restart: always
+    networks:
+      parcel_network:
+        aliases:
+          - redis-parcel-${CONFIG_NAME}
 
   web:
     image: ${DOCKERHUB_USERNAME}/parcel-service:${TAG}

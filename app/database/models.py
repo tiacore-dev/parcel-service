@@ -401,3 +401,7 @@ class Attachments(Model):
 
     class Meta:
         table = "attachments"
+
+
+class AttachmentEntityrelation(Model):
+    id = fields.UUIDField(pk=True, default=uuid.uuid4)
