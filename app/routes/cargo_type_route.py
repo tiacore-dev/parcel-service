@@ -67,7 +67,7 @@ async def edit_cargo_type(
 )
 async def delete_cargo_type(
     cargo_type_id: UUID,
-    context: dict = Depends(require_permission_in_context("delete_cargo_type_type")),
+    context: dict = Depends(require_permission_in_context("delete_cargo_type")),
 ):
     cargo_type = await CargoType.filter(id=cargo_type_id).first()
 
