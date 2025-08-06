@@ -84,6 +84,9 @@ async def get_return_list(
     if filters.get("date_to"):
         query &= Q(date__lte=filters["date_to"])
 
+    if filters.get("returns_id"):
+        query &= Q(returns_id=filters["returns_id"])
+
     if filters.get("sender_name"):
         query &= Q(sender_name__icontains=filters["sender_name"])
 

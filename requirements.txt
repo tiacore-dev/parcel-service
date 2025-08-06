@@ -1,6 +1,6 @@
 # Приложение и работа с jwt
 fastapi==0.115.12
-python-jose==3.3.0
+python-jose==3.4.0
 
 # ЛОггер
 loguru==0.7.3
