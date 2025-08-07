@@ -60,8 +60,8 @@ async def get_return_details_list(
 ):
     query = Q()
 
-    if filters.get("return_id"):
-        query &= Q(return_id=filters["return_id"])
+    if filters.get("returns_id"):
+        query &= Q(returns_id=filters["returns_id"])
 
     if filters.get("parcel_id"):
         query &= Q(parcel_id=filters["parcel_id"])
