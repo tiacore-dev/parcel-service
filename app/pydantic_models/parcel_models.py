@@ -241,11 +241,15 @@ class ParcelSchema(BaseModel):
     modified_at: datetime = Field(...)
     modified_by: UUID = Field(...)
 
-    status: Optional[ParcelStatusEnum] = Field(None)
+    # status: Optional[ParcelStatusEnum] = Field(None)
 
     class Config:
         from_attributes = True
         populate_by_name = True
+
+
+class ParcelAllSchema(ParcelSchema):
+    status: Optional[ParcelStatusEnum] = Field(None)
 
 
 class ParcelCurrentStatusSchema(BaseModel):
@@ -261,6 +265,10 @@ class ParcelCurrentStatusSchema(BaseModel):
     class Config:
         from_attributes = True
         populate_by_name = True
+
+
+class ParcelViewSchema(ParcelSchema):
+    status: Optional[ParcelCurrentStatusSchema] = None
 
 
 class ParcelListResponseSchema(BaseModel):

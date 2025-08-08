@@ -11,12 +11,14 @@ from tortoise.expressions import Q
 from app.database.models import Parcel
 from app.handlers.status_handler import get_cached_parcel_status_data
 from app.pydantic_models.parcel_models import (
+    ParcelAllSchema,
     ParcelCreateSchema,
     ParcelCurrentStatusSchema,
     ParcelEditSchema,
     ParcelListResponseSchema,
     ParcelResponseSchema,
     ParcelSchema,
+    ParcelViewSchema,
     parcel_filter_params,
 )
 from app.utils.db_helpers import generate_parcel_name
@@ -102,9 +104,6 @@ async def get_parcels(
     if filters.get("pickup_date_to"):
         query &= Q(pickup_estimated_date__lte=filters["pickup_date_to"])
 
-    # if filters.get("company_id"):
-    #     query &= Q(company_id=filters["company_id"])
-
     if filters.get("search"):
         search = filters["search"]
         query &= (
@@ -139,10 +138,9 @@ async def get_parcels(
         status_data = await get_cached_parcel_status_data(parcel.id)
         status = status_data["status"] if status_data else None
 
-        parcel_dict = parcel.__dict__
-        parcel_dict["status"] = status
+        parcel_dict = ParcelSchema.model_validate(parcel).model_dump()
 
-        parcel_schemas.append(ParcelSchema.model_validate(parcel_dict))
+        parcel_schemas.append(ParcelAllSchema(**parcel_dict, status=status))
 
     return ParcelListResponseSchema(total=total_count, parcels=parcel_schemas)
 
@@ -165,7 +163,7 @@ async def get_parcel_status(
 
 @parcel_router.get(
     "/by-number",
-    response_model=ParcelSchema,
+    response_model=ParcelViewSchema,
     summary="Просмотр одной накладной",
 )
 async def get_parcel_by_number(
@@ -177,12 +175,16 @@ async def get_parcel_by_number(
     if not parcel:
         raise HTTPException(status_code=404, detail="Накладная не найдена")
     # validate_company_access(parcel, context, "Накладная")
-    return ParcelSchema.model_validate(parcel, from_attributes=True)
+    status_data = await get_cached_parcel_status_data(parcel.id)
+    return ParcelViewSchema(
+        **ParcelSchema.model_validate(parcel, from_attributes=True).model_dump(),
+        status=ParcelCurrentStatusSchema.model_validate(status_data) if status_data else None,
+    )
 
 
 @parcel_router.get(
     "/{parcel_id}",
-    response_model=ParcelSchema,
+    response_model=ParcelViewSchema,
     summary="Просмотр одной накладной",
 )
 async def get_legal_parcel(
@@ -194,4 +196,8 @@ async def get_legal_parcel(
     if not parcel:
         raise HTTPException(status_code=404, detail="Накладная не найдена")
     # validate_company_access(parcel, context, "Накладная")
-    return ParcelSchema.model_validate(parcel, from_attributes=True)
+    status_data = await get_cached_parcel_status_data(parcel.id)
+    return ParcelViewSchema(
+        **ParcelSchema.model_validate(parcel, from_attributes=True).model_dump(),
+        status=ParcelCurrentStatusSchema.model_validate(status_data) if status_data else None,
+    )
