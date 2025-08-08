@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from fastapi import Query
@@ -56,8 +56,8 @@ class CargoTypeListResponseSchema(BaseModel):
 def cargo_type_filter_params(
     company_id: Optional[UUID] = Query(None, description="Артикул"),
     cargo_type_name: Optional[bool] = Query(None, description="Статус доставки"),
-    sort_by: Optional[str] = Query("name", description="Поле сортировки"),
-    order: Optional[str] = Query("asc", description="asc/desc"),
+    sort_by: Literal["name", "created_at"] = Query("name", description="Поле сортировки"),
+    order: Literal["asc", "desc"] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1, description="Номер страницы"),
     page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

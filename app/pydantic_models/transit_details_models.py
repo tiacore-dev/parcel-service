@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from fastapi import Query
@@ -64,8 +64,8 @@ def transit_details_filter_params(
     parcel_name: Optional[str] = Query(None, description="Фильтр по номеру накладной"),
     transit_id: Optional[UUID] = Query(None, description="Фильтр по ID транзита"),
     parcel_id: Optional[UUID] = Query(None, description="Фильтр по ID накладной"),
-    sort_by: Optional[str] = Query("id", description="Поле для сортировки"),
-    order: Optional[str] = Query("asc", description="asc/desc"),
+    sort_by: Literal["created_at"] = Query("created_at", description="Поле для сортировки"),
+    order: Literal["asc", "desc"] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1, description="Номер страницы"),
     page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

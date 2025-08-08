@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from fastapi import Query
@@ -70,8 +70,8 @@ def parcel_status_filter_params(
     status: Optional[ParcelStatusEnum] = Query(None, description="Статус"),
     value: Optional[UUID] = Query(None, description="Значение"),
     value_type: Optional[str] = Query(None, description="Тип значения"),
-    sort_by: Optional[str] = Query("status", description="Поле для сортировки"),
-    order: Optional[str] = Query("asc", description="asc/desc"),
+    sort_by: Literal["status", "created_at", "date"] = Query("status", description="Поле для сортировки"),
+    order: Literal["asc", "desc"] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1, description="Номер страницы"),
     page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

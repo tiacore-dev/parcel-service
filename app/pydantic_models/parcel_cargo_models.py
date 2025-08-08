@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from fastapi import Query
@@ -77,8 +77,10 @@ class ParcelCargoListResponseSchema(BaseModel):
 def parcel_cargo_filter_params(
     parcel_id: Optional[UUID] = Query(None, description="Фильтр по ID накладной"),
     cargo_type_id: Optional[UUID] = Query(None, description="Тип груза"),
-    sort_by: Optional[str] = Query("created_at", description="Поле сортировки"),
-    order: Optional[str] = Query("asc", description="asc/desc"),
+    sort_by: Literal["created_at", "total_weight", "total_volume", "quantity"] = Query(
+        "created_at", description="Поле сортировки"
+    ),
+    order: Literal["asc", "desc"] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1, description="Номер страницы"),
     page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

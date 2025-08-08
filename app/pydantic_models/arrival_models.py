@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from fastapi import Query
@@ -72,8 +72,8 @@ def arrival_filter_params(
     warehouse_id: Optional[UUID] = Query(None, description="Фильтр по ID склада"),
     date_from: Optional[datetime] = Query(None, description="Дата от (включительно)"),
     date_to: Optional[datetime] = Query(None, description="Дата до (включительно)"),
-    sort_by: Optional[str] = Query("date", description="Поле для сортировки"),
-    order: Optional[str] = Query("asc", description="asc/desc"),
+    sort_by: Literal["created_at", "date"] = Query("date", description="Поле для сортировки"),
+    order: Literal["asc", "desc"] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1, description="Номер страницы"),
     page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

@@ -1,7 +1,8 @@
 import re
 from datetime import date, datetime, time
 from decimal import Decimal
-from typing import List, Optional
+from enum import Enum
+from typing import List, Literal, Optional
 from uuid import UUID
 from zoneinfo import available_timezones
 
@@ -280,6 +281,50 @@ class ParcelListResponseSchema(BaseModel):
         populate_by_name = True
 
 
+class ParcelSortFields(str, Enum):
+    parcel_id = "parcel_id"
+    parcel_name = "parcel_name"
+    company_id = "company_id"
+    sender_city = "sender_city"
+    sender_address = "sender_address"
+    sender_warehouse = "sender_warehouse"
+    sender_delivery_type = "sender_delivery_type"
+    sender_personal_data = "sender_personal_data"
+    sender_company = "sender_company"
+    sender_phone = "sender_phone"
+    sender_email = "sender_email"
+    sender_telegram = "sender_telegram"
+    sender_coordinates_latitude = "sender_coordinates_latitude"
+    sender_coordinates_longitude = "sender_coordinates_longitude"
+    pickup_estimated_date = "pickup_estimated_date"
+    pickup_time_from = "pickup_time_from"
+    pickup_time_to = "pickup_time_to"
+    sender_additional_info = "sender_additional_info"
+    recipient_city = "recipient_city"
+    recipient_address = "recipient_address"
+    recipient_warehouse = "recipient_warehouse"
+    recipient_delivery_type = "recipient_delivery_type"
+    recipient_personal_data = "recipient_personal_data"
+    recipient_company = "recipient_company"
+    recipient_phone = "recipient_phone"
+    recipient_email = "recipient_email"
+    recipient_telegram = "recipient_telegram"
+    recipient_coordinates_latitude = "recipient_coordinates_latitude"
+    recipient_coordinates_longitude = "recipient_coordinates_longitude"
+    delivery_estimated_date = "delivery_estimated_date"
+    delivery_time_from = "delivery_time_from"
+    delivery_time_to = "delivery_time_to"
+    recipient_additional_info = "recipient_additional_info"
+    note = "note"
+    weight = "weight"
+    volume = "volume"
+    places_count = "places_count"
+    created_at = "created_at"
+    created_by = "created_by"
+    modified_at = "modified_at"
+    modified_by = "modified_by"
+
+
 def parcel_filter_params(
     company_id: Optional[UUID] = Query(None, description="ID компании"),
     sender_city: Optional[UUID] = Query(None, description="Город отправителя"),
@@ -290,8 +335,8 @@ def parcel_filter_params(
         None,
         description="Поиск по адресу или названию компаний (отправителя/получателя)",
     ),
-    sort_by: Optional[str] = Query("created_at", description="Поле сортировки"),
-    order: Optional[str] = Query("asc", description="asc/desc"),
+    sort_by: ParcelSortFields = Query(ParcelSortFields.created_at, description="Поле сортировки"),
+    order: Literal["asc", "desc"] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1),
     page_size: Optional[int] = Query(10, ge=1, le=100),
 ):

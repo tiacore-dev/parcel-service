@@ -71,8 +71,8 @@ def delivery_filter_params(
     date_from: Optional[datetime] = Query(None, description="Дата от (включительно)"),
     date_to: Optional[datetime] = Query(None, description="Дата до (включительно)"),
     recipient_name: Optional[str] = Query(None, description="Фильтр по имени получателя"),
-    sort_by: Literal["date", "recipient_name"] = Query("date", description="Поле для сортировки"),
-    order: Optional[str] = Query("asc", description="asc/desc"),
+    sort_by: Literal["date", "recipient_name", "created_at"] = Query("date", description="Поле для сортировки"),
+    order: Literal["asc", "desc"] = Query("asc", description="asc/desc"),
     page: Optional[int] = Query(1, ge=1, description="Номер страницы"),
     page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),
 ):
