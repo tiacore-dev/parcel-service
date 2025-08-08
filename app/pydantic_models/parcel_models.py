@@ -282,9 +282,7 @@ class ParcelListResponseSchema(BaseModel):
 
 
 class ParcelSortFields(str, Enum):
-    parcel_id = "parcel_id"
-    parcel_name = "parcel_name"
-    company_id = "company_id"
+    parcel_name = "name"
     sender_city = "sender_city"
     sender_address = "sender_address"
     sender_warehouse = "sender_warehouse"
@@ -320,9 +318,7 @@ class ParcelSortFields(str, Enum):
     volume = "volume"
     places_count = "places_count"
     created_at = "created_at"
-    created_by = "created_by"
     modified_at = "modified_at"
-    modified_by = "modified_by"
 
 
 def parcel_filter_params(
@@ -347,7 +343,7 @@ def parcel_filter_params(
         "pickup_date_from": pickup_date_from,
         "pickup_date_to": pickup_date_to,
         "search": search,
-        "sort_by": sort_by,
+        "sort_by": sort_by.value,
         "order": order,
         "page": page,
         "page_size": page_size,
