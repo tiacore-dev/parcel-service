@@ -212,7 +212,7 @@ jobs:
           COMMIT_MESSAGE=$(echo "$COMMIT_MESSAGE" | sed 's/\\n/\'$'\n''/g')
 
           TEXT="${STATUS}
-
+          Parcel Service
           📦 *Ветка:* \`$REF_NAME\`
           🔖 *Тег:* \`$SHA\`
           👤 *Автор деплоя:* [$PARCELOR_USERNAME](https://github.com/$PARCELOR_USERNAME)

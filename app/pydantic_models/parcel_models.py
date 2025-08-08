@@ -274,7 +274,7 @@ class ParcelViewSchema(ParcelSchema):
 
 class ParcelListResponseSchema(BaseModel):
     total: int
-    parcels: List[ParcelSchema]
+    parcels: List[ParcelAllSchema]
 
     class Config:
         from_attributes = True
