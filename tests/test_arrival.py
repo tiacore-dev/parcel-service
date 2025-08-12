@@ -4,7 +4,8 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
-from app.database.models import Arrival, ArrivalDetails, Parcel
+from app.database.models import Arrival, ArrivalDetails, Parcel, ParcelStatusEnum
+from app.handlers.status_handler import get_cached_parcel_status_data
 
 
 @pytest.mark.asyncio
@@ -42,6 +43,9 @@ async def test_add_arrival_bulk(test_app: AsyncClient, jwt_token_admin, seed_par
     detail = await ArrivalDetails.get_or_none(parcel_id=seed_parcel.id)
     assert arrival is not None
     assert detail is not None
+    status = await get_cached_parcel_status_data(seed_parcel.id)
+    assert status is not None
+    assert status["status"] == ParcelStatusEnum.ON_WAREHOUSE
 
 
 @pytest.mark.asyncio

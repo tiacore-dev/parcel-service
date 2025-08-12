@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
 from tortoise.expressions import Q
 
-from app.database.models import ParcelStatus, Return, ReturnDetails
+from app.database.models import ParcelStatus, ParcelStatusEnum, Return, ReturnDetails
+from app.handlers.status_handler import recalculate_parcel_status
 from app.pydantic_models.return_models import (
     ReturnCreateBulkSchema,
     ReturnCreateSchema,
@@ -44,7 +45,7 @@ async def add_bulk_return(
     context: dict = Depends(require_permission_in_context("add_return_bulk")),
 ):
     create_data = data.model_dump()
-
+    parcel_ids = create_data["parcels"]
     create_data.pop("parcels")
     return_obj = await Return.create(created_by=context["user_id"], modified_by=context["user_id"], **create_data)
     await ReturnDetails.bulk_create(
@@ -55,6 +56,16 @@ async def add_bulk_return(
             for parcel in data.parcels
         ]
     )
+    for parcel_id in parcel_ids:
+        await ParcelStatus.create(
+            parcel_id=parcel_id,
+            document_id=return_obj.id,
+            document_type="return_id",
+            status=ParcelStatusEnum.RETURNED,
+            date=return_obj.date,
+            created_by=context["user_id"],
+        )
+        await recalculate_parcel_status(parcel_id)
     return ReturnResponseSchema(return_id=return_obj.id)
 
 

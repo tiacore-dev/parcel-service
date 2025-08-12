@@ -170,9 +170,8 @@ jobs:
           echo "🚀 Перезапускаем backend..."
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << EOF
             cd $DEPLOY_PATH || exit 1
-
-            docker compose -f docker-compose.app.yml down && \
-            docker compose -f docker-compose.app.yml up -d --force-recreate && \
+            
+            docker compose -f docker-compose.app.yml up web --force-recreate -d  && \
             echo "✅ Контейнер перезапущен" || {
               echo "❌ Контейнер не запустился"
               exit 1

@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
 from tortoise.expressions import Q
 
-from app.database.models import Transit, TransitDetails
+from app.database.models import ParcelStatus, ParcelStatusEnum, Transit, TransitDetails
+from app.handlers.status_handler import recalculate_parcel_status
 from app.pydantic_models.transit_models import (
     TransitCreateBulkSchema,
     TransitCreateSchema,
@@ -48,6 +49,7 @@ async def add_bulk_transit(
     context: dict = Depends(require_permission_in_context("add_transit_bulk")),
 ):
     create_data = data.model_dump()
+    parcel_ids = create_data["parcels"]
     if not data.name:
         create_data["name"] = await generate_transit_number()
     create_data.pop("parcels")
@@ -60,6 +62,18 @@ async def add_bulk_transit(
             for parcel in data.parcels
         ]
     )
+    for parcel_id in parcel_ids:
+        await ParcelStatus.create(
+            parcel_id=parcel_id,
+            document_id=transit.id,
+            document_type="transit_id",
+            status=ParcelStatusEnum.IN_TRANSIT,
+            value=transit.warehouse_to_id,
+            value_type="warehouse_id",
+            date=transit.date,
+            created_by=context["user_id"],
+        )
+        await recalculate_parcel_status(parcel_id)
     return TransitResponseSchema(transit_id=transit.id)
 
 
@@ -189,6 +203,6 @@ async def delete_transit(
 
     if not transit:
         raise HTTPException(status_code=404, detail="Транзит не найден")
-
+    await ParcelStatus.filter(document_id=transit_id).delete()
     await transit.delete()
     return

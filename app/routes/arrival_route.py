@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
 from tortoise.expressions import Q
 
-from app.database.models import Arrival, ArrivalDetails
+from app.database.models import Arrival, ArrivalDetails, ParcelStatus, ParcelStatusEnum
+from app.handlers.status_handler import recalculate_parcel_status
 from app.pydantic_models.arrival_models import (
     ArrivalCreateBulkSchema,
     ArrivalCreateSchema,
@@ -44,7 +45,7 @@ async def add_bulk_arrival(
     context: dict = Depends(require_permission_in_context("add_arrival_bulk")),
 ):
     create_data = data.model_dump()
-
+    parcel_ids = create_data["parcels"]
     create_data.pop("parcels")
     arrival = await Arrival.create(created_by=context["user_id"], modified_by=context["user_id"], **create_data)
     await ArrivalDetails.bulk_create(
@@ -55,6 +56,18 @@ async def add_bulk_arrival(
             for parcel in data.parcels
         ]
     )
+    for parcel_id in parcel_ids:
+        await ParcelStatus.create(
+            parcel_id=parcel_id,
+            document_id=arrival.id,
+            document_type="arrival_id",
+            status=ParcelStatusEnum.ON_WAREHOUSE,
+            date=arrival.date,
+            value=arrival.warehouse_id,
+            value_type="warehouse_id",
+            created_by=context["user_id"],
+        )
+        await recalculate_parcel_status(parcel_id)
     return ArrivalResponseSchema(arrival_id=arrival.id)
 
 
@@ -179,5 +192,6 @@ async def delete_arrival(
 
     if not arrival:
         raise HTTPException(status_code=404, detail="Событие не найдено")
+    await ParcelStatus.filter(document_id=arrival_id).delete()
     await arrival.delete()
     return
