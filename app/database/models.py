@@ -189,7 +189,7 @@ class ParcelStatus(Model):
     status = fields.CharEnumField(ParcelStatusEnum)
     value = fields.UUIDField(null=True)
     value_type = fields.CharField(max_length=255, null=True)
-    date = fields.DateField()
+    date = fields.DatetimeField()
     comment = fields.TextField(null=True)
 
     created_at = fields.DatetimeField(auto_now_add=True)
