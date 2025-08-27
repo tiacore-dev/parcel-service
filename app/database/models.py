@@ -1,6 +1,7 @@
 import uuid
 from enum import Enum
 
+from tiacore_lib.enums import ServiceType
 from tortoise import fields
 from tortoise.fields.relational import ReverseRelation
 from tortoise.models import Model
@@ -209,6 +210,24 @@ class ParcelStatus(Model):
 
     class Meta:
         table = "parcel_statuses"
+
+
+class Service(Model):
+    id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    contract_id = fields.UUIDField()
+    price_id = fields.UUIDField(null=True)
+    parcel = fields.ForeignKeyField("models.Parcel", related_name="services")
+    service_type = fields.CharEnumField(ServiceType)
+    base_value = fields.FloatField()
+    summ = fields.FloatField(null=True)
+
+    created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.UUIDField()
+    modified_at = fields.DatetimeField(auto_now=True)
+    modified_by = fields.UUIDField()
+
+    class Meta:
+        table = "services"
 
 
 class Pickup(Model):

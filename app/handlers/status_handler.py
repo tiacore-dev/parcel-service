@@ -8,7 +8,7 @@ from app.database.models import ParcelStatus, ParcelStatusEnum
 
 
 def get_parcel_status_cache_key(parcel_id: UUID) -> str:
-    return f"parcel:{parcel_id}"
+    return f"parcel:status:{parcel_id}"
 
 
 async def save_parcel_status_to_cache(

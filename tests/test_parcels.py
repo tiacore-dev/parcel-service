@@ -30,6 +30,7 @@ async def test_add_parcel(test_app: AsyncClient, jwt_token_admin):
         "delivery_time_from": "10:00:00",
         "delivery_time_to": "12:00:00",
         "recipient_additional_info": "Доп. инфа по получателю",
+        "contract_id": str(uuid4()),
     }
 
     response = await test_app.post("/api/parcels/add", headers=headers, json=data)
@@ -67,6 +68,7 @@ async def test_add_parcel_no_name(test_app: AsyncClient, jwt_token_admin):
         "delivery_time_from": "10:00:00",
         "delivery_time_to": "12:00:00",
         "recipient_additional_info": "Доп. инфа по получателю",
+        "contract_id": str(uuid4()),
     }
 
     response = await test_app.post("/api/parcels/add", headers=headers, json=data)

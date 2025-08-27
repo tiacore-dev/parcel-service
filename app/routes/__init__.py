@@ -21,6 +21,7 @@ from .parcel_status_route import parcel_status_router
 from .pickup_route import pickup_router
 from .return_details_route import return_details_router
 from .return_route import return_router
+from .service_route import service_router
 from .statuses_route import status_router
 from .template_route import template_router
 from .transit_detail_route import transit_details_router
@@ -71,3 +72,4 @@ def register_routes(app: FastAPI):
 
     app.include_router(template_router, prefix="/api/templates", tags=["Templates"])
     app.include_router(attachment_router, prefix="/api/attachments", tags=["Attachments"])
+    app.include_router(service_router, prefix="/api/services", tags=["Services"])

@@ -61,6 +61,8 @@ class ParcelCreateSchema(BaseModel):
     volume: Decimal = Field(Decimal(0.0))
     places_count: int = Field(0)
 
+    contract_id: UUID = Field(...)
+
     # Кастомная валидация для телефона
     @field_validator("sender_phone", "recipient_phone")
     def validate_phone(cls, v):

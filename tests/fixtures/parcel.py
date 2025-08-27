@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.database.models import DeliveryType, Parcel
+from app.database.models import DeliveryType, Parcel, Service
 
 
 @pytest.fixture
@@ -40,3 +40,17 @@ async def seed_parcel(seed_company, seed_user):
         modified_by=seed_user,
     )
     return parcel
+
+
+@pytest.fixture
+async def seed_service(seed_user, seed_parcel):
+    service = await Service.create(
+        created_by=seed_user,
+        modified_by=seed_user,
+        parcel=seed_parcel,
+        price_id=uuid4(),
+        contract_id=uuid4(),
+        service_type="standard",
+        base_value=1,
+    )
+    return service

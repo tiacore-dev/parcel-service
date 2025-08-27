@@ -21,6 +21,8 @@ class BaseConfig(SharedBaseConfig):
 
     AUTH_BROKER_URL: str = ""
 
+    CONTRACT_URL: str = ""
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
@@ -40,6 +42,8 @@ class TestConfig(SharedTestConfig):
     BUCKET_NAME: str = ""
 
     AUTH_BROKER_URL: str = ""
+
+    CONTRACT_URL: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env.test",

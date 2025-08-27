@@ -1,0 +1,128 @@
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from tiacore_lib.handlers.dependency_handler import require_permission_in_context
+from tortoise.expressions import Q
+
+from app.database.models import Service
+from app.pydantic_models.service_models import (
+    ServiceCreateSchema,
+    ServiceEditSchema,
+    ServiceListResponseSchema,
+    ServiceResponseSchema,
+    ServiceSchema,
+    service_filter_params,
+)
+
+service_router = APIRouter()
+
+
+@service_router.post(
+    "/add",
+    response_model=ServiceResponseSchema,
+    summary="Добавить услугу",
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_service(
+    data: ServiceCreateSchema,
+    context: dict = Depends(require_permission_in_context("add_service")),
+):
+    service = await Service.create(created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump())
+
+    return ServiceResponseSchema(service_id=service.id)
+
+
+@service_router.get(
+    "/all",
+    response_model=ServiceListResponseSchema,
+    summary="Получение услуг",
+)
+async def get_service_list(
+    filters: dict = Depends(service_filter_params),
+    _: dict = Depends(require_permission_in_context("get_all_services")),
+):
+    query = Q()
+
+    if filters.get("parcel_id"):
+        query &= Q(parcel_id=filters["parcel_id"])
+
+    if filters.get("service_type"):
+        query &= Q(service_type=filters["service_type"])
+
+    if filters.get("contract_id"):
+        query &= Q(contract_id=filters["contract_id"])
+
+    if filters.get("price_id"):
+        query &= Q(price_id=filters["price_id"])
+
+    sort_by = filters.get("sort_by", "created_at")
+    order = filters.get("order", "asc").lower()
+    sort_field = sort_by if order == "asc" else f"-{sort_by}"
+    page = filters.get("page", 1)
+    page_size = filters.get("page_size", 10)
+    offset = (page - 1) * page_size
+
+    total_count = await Service.filter(query).count()
+    services = await Service.filter(query).order_by(sort_field).offset(offset).limit(page_size)
+
+    return ServiceListResponseSchema(
+        total=total_count,
+        services=[ServiceSchema.model_validate(service) for service in services],
+    )
+
+
+@service_router.get(
+    "/{service_id}",
+    response_model=ServiceSchema,
+    summary="Просмотр одной услуги",
+)
+async def get_service(
+    service_id: UUID,
+    _: dict = Depends(require_permission_in_context("view_service")),
+):
+    service = await Service.filter(id=service_id).first()
+
+    if not service:
+        raise HTTPException(status_code=404, detail="Услуга не найдена")
+
+    return ServiceSchema.model_validate(service, from_attributes=True)
+
+
+@service_router.patch(
+    "/{service_id}",
+    response_model=ServiceResponseSchema,
+    summary="Редактирование услуги",
+)
+async def edit_service(
+    service_id: UUID,
+    data: ServiceEditSchema,
+    context: dict = Depends(require_permission_in_context("edit_service")),
+):
+    service = await Service.filter(id=service_id).first()
+
+    if not service:
+        raise HTTPException(status_code=404, detail="Услуга не найдена")
+
+    await service.update_from_dict(data.model_dump(exclude_unset=True))
+    service.modified_by = context["user_id"]
+    await service.save()
+    return ServiceResponseSchema(service_id=service.id)
+
+
+@service_router.delete(
+    "/{service_id}",
+    summary="Удаление услуги",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_service(
+    service_id: UUID,
+    _: dict = Depends(require_permission_in_context("delete_service")),
+):
+    service = await Service.filter(id=service_id).first()
+
+    if not service:
+        raise HTTPException(status_code=404, detail="Услуга не найдена")
+
+    await service.delete()
+
+    return

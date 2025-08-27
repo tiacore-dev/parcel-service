@@ -1,15 +1,22 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from loguru import logger
+from tiacore_lib.config import get_settings
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
 from tiacore_lib.handlers.permissions_handler import with_permission_and_company_from_body_check
+from tiacore_lib.http.http_client import (
+    SharedHttpClient,
+    get_auth_headers,
+)
 
 # from tiacore_lib.utils.validate_helpers import validate_company_access
 from tortoise.expressions import Q
 
-from app.database.models import Parcel
+from app.database.models import Parcel, Service, ServiceType
 from app.handlers.status_handler import get_cached_parcel_status_data
+from app.pydantic_models.get_ids_models import GetPriceIDSchema
 from app.pydantic_models.parcel_models import (
     ParcelAllSchema,
     ParcelCreateSchema,
@@ -24,6 +31,7 @@ from app.pydantic_models.parcel_models import (
 from app.utils.db_helpers import generate_parcel_name
 
 parcel_router = APIRouter()
+http_client = SharedHttpClient()
 
 
 @parcel_router.post(
@@ -33,14 +41,33 @@ parcel_router = APIRouter()
     status_code=status.HTTP_201_CREATED,
 )
 async def add_parcel(
+    request: Request,
     data: ParcelCreateSchema,
     context=Depends(with_permission_and_company_from_body_check("add_parcel")),
+    settings=Depends(get_settings),
 ):
     create_data = data.model_dump()
     if not data.name:
         create_data["name"] = await generate_parcel_name()
     parcel = await Parcel.create(created_by=context["user_id"], modified_by=context["user_id"], **create_data)
 
+    headers = get_auth_headers(request)
+    json_data = GetPriceIDSchema.model_validate(create_data)
+    response_data, status_code = await http_client.request(
+        "POST", f"{settings.CONTRACT_URL}/api/get-company-ids/{data.contract_id}", headers=headers, json=json_data
+    )
+    logger.debug(f"Response from contracts-service: {response_data}, status={status_code}")
+    if status_code == 200:
+        await Service.create(
+            created_by=context["user_id"],
+            modified_by=context["user_id"],
+            parcel=parcel,
+            contract_id=data.contract_id,
+            base_value=0,
+            summ=0,
+            service_type=ServiceType.STANDARD,
+            price_id=response_data["price_id"],
+        )
     return ParcelResponseSchema(parcel_id=parcel.id)
 
 
