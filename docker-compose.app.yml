@@ -3,6 +3,24 @@ services:
     image: redis:7-alpine
     container_name: redis-parcel-${CONFIG_NAME}
     restart: always
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --save 60 10000
+      --dir /data
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    ulimits:
+      nofile:
+        soft: 100000
+        hard: 100000
     networks:
       parcel_network:
         aliases:
@@ -16,9 +34,13 @@ services:
     restart: always
     ports:
       - "${PORT}:8000"
+    # Рекомендуется переключиться на env_file, но оставляю как у тебя:
     volumes:
-      - ./logs:/app/logs  
-      - .env:/app/.env 
+      - ./logs:/app/logs
+      - .env:/app/.env
+    depends_on:
+      redis:
+        condition: service_healthy
     command: >
        gunicorn -c gunicorn.conf.py run:app
     networks:
@@ -31,13 +53,14 @@ services:
     stdin_open: true
     restart: always
     volumes:
-      - ./logs:/app/logs  
-      - .env:/app/.env 
+      - ./logs:/app/logs
+      - .env:/app/.env
     networks:
       - parcel_network
 
 volumes:
-  redis-master-data:
+  redis-data:
+    name: redis-data-${CONFIG_NAME}
 
 networks:
   parcel_network:
