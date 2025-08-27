@@ -118,12 +118,12 @@ async def get_delivery(
     delivery_id: UUID,
     _: dict = Depends(require_permission_in_context("view_delivery")),
 ):
-    delivery = await Delivery.filter(id=delivery_id).first()
+    delivery = await Delivery.filter(id=delivery_id).prefetch_related("parcel").first()
 
     if not delivery:
         raise HTTPException(status_code=404, detail="Событие не найдено")
 
-    return DeliverySchema.model_validate(delivery, from_attributes=True)
+    return DeliverySchema(parcel_name=delivery.parcel.name, **delivery.__dict__)
 
 
 @delivery_router.patch(

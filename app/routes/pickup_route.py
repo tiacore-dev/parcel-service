@@ -125,12 +125,12 @@ async def get_pickup(
     pickup_id: UUID,
     _: dict = Depends(require_permission_in_context("view_pickup")),
 ):
-    pickup = await Pickup.filter(id=pickup_id).first()
+    pickup = await Pickup.filter(id=pickup_id).prefetch_related("parcel").first()
 
     if not pickup:
         raise HTTPException(status_code=404, detail="Событие не найдено")
 
-    return PickupSchema.model_validate(pickup, from_attributes=True)
+    return PickupSchema(parcel_name=pickup.parcel.name, **pickup.__dict__)
 
 
 @pickup_router.patch(
