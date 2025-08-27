@@ -6,10 +6,10 @@ from tiacore_lib.enums import ServiceType
 
 
 class GetPriceIDSchema(BaseModel):
-    sender_city: UUID = Field(..., alias="sender_city_id")
-    recipient_city: UUID = Field(..., alias="recipient_city_id")
-    sender_warehouse: Optional[UUID] = Field(None, alias="sender_warehouse_id")
-    recipient_warehouse: Optional[UUID] = Field(None, alias="recipient_warehouse_id")
+    sender_city_id: UUID = Field(...)
+    recipient_city_id: UUID = Field(...)
+    sender_warehouse_id: Optional[UUID] = Field(None)
+    recipient_warehouse_id: Optional[UUID] = Field(None)
     service_type: ServiceType
 
     class Config:
