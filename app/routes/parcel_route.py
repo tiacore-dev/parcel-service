@@ -52,7 +52,7 @@ async def add_parcel(
     parcel = await Parcel.create(created_by=context["user_id"], modified_by=context["user_id"], **create_data)
 
     headers = get_auth_headers(request)
-    json_data = GetPriceIDSchema(**create_data)
+    json_data = GetPriceIDSchema(service_type=ServiceType.STANDARD, **create_data)
     response_data, status_code = await http_client.request(
         "POST", f"{settings.CONTRACT_URL}/api/get-company-ids/{data.contract_id}", headers=headers, json=json_data
     )
