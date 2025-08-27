@@ -52,9 +52,19 @@ async def add_parcel(
     parcel = await Parcel.create(created_by=context["user_id"], modified_by=context["user_id"], **create_data)
 
     headers = get_auth_headers(request)
-    json_data = GetPriceIDSchema(service_type=ServiceType.STANDARD, **create_data)
+    json_data = GetPriceIDSchema(
+        service_type=ServiceType.STANDARD,
+        sender_city_id=data.sender_city,
+        recipient_city_id=data.recipient_city,
+        sender_warehouse_id=data.sender_warehouse,
+        recipient_warehouse_id=data.recipient_warehouse,
+    )
+
     response_data, status_code = await http_client.request(
-        "POST", f"{settings.CONTRACT_URL}/api/get-company-ids/{data.contract_id}", headers=headers, json=json_data
+        "POST",
+        f"{settings.CONTRACT_URL}/api/get-company-ids/{data.contract_id}",
+        headers=headers,
+        json=json_data.model_dump(mode="json"),
     )
     logger.debug(f"Response from contracts-service: {response_data}, status={status_code}")
     if status_code == 200:
