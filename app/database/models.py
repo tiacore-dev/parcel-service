@@ -358,7 +358,7 @@ class IssueDetails(Model):
 
 class Transit(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
-    name = fields.CharField(max_length=10, unique=True)
+    name = fields.CharField(max_length=128, unique=True)
     warehouse_from_id = fields.UUIDField()
     warehouse_to_id = fields.UUIDField()
     date = fields.DatetimeField()

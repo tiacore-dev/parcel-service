@@ -10,7 +10,7 @@ from app.pydantic_models.parcel_models import ParcelShortSchema
 
 
 class TransitCreateSchema(BaseModel):
-    name: Optional[str] = Field(None, alias="transit_name", max_length=10)
+    name: Optional[str] = Field(None, alias="transit_name", max_length=128)
     warehouse_from_id: UUID
     warehouse_to_id: UUID
     date: datetime
@@ -21,7 +21,7 @@ class TransitCreateSchema(BaseModel):
 
 
 class TransitCreateBulkSchema(BaseModel):
-    name: Optional[str] = Field(None, alias="transit_name", max_length=10)
+    name: Optional[str] = Field(None, alias="transit_name", max_length=128)
     warehouse_from_id: UUID
     warehouse_to_id: UUID
     date: datetime

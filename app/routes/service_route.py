@@ -1,10 +1,14 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+# service_router.py
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from tiacore_lib.config import get_settings
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
 from tortoise.expressions import Q
 
 from app.database.models import Service
+from app.handlers.get_redis import get_redis
+from app.handlers.parcel_scope_updater import recalc_parcel_scope_from_services
 from app.pydantic_models.service_models import (
     ServiceCreateSchema,
     ServiceEditSchema,
@@ -24,12 +28,75 @@ service_router = APIRouter()
     status_code=status.HTTP_201_CREATED,
 )
 async def add_service(
+    request: Request,
     data: ServiceCreateSchema,
     context: dict = Depends(require_permission_in_context("add_service")),
+    settings=Depends(get_settings),
+    redis_client=Depends(get_redis),
 ):
-    service = await Service.create(created_by=context["user_id"], modified_by=context["user_id"], **data.model_dump())
+    service = await Service.create(
+        created_by=context["user_id"],
+        modified_by=context["user_id"],
+        **data.model_dump(),
+    )
+    # гарантия консистентности scope
+    await recalc_parcel_scope_from_services(request, settings, redis_client, service.parcel_id)  # type: ignore
+    return ServiceResponseSchema(service_id=service.id)
+
+
+@service_router.patch(
+    "/{service_id}",
+    response_model=ServiceResponseSchema,
+    summary="Редактирование услуги",
+)
+async def edit_service(
+    service_id: UUID,
+    data: ServiceEditSchema,
+    request: Request,
+    context: dict = Depends(require_permission_in_context("edit_service")),
+    settings=Depends(get_settings),
+    redis_client=Depends(get_redis),
+):
+    service = await Service.filter(id=service_id).first()
+    if not service:
+        raise HTTPException(status_code=404, detail="Услуга не найдена")
+
+    old_parcel_id = service.parcel_id  # type: ignore
+
+    await service.update_from_dict(data.model_dump(exclude_unset=True))
+    service.modified_by = context["user_id"]
+    await service.save()
+
+    # если переназначили на другую накладную — пересчитать обе
+    new_parcel_id = service.parcel_id  # type: ignore
+    if new_parcel_id != old_parcel_id:
+        await recalc_parcel_scope_from_services(request, settings, redis_client, old_parcel_id)
+    await recalc_parcel_scope_from_services(request, settings, redis_client, new_parcel_id)
 
     return ServiceResponseSchema(service_id=service.id)
+
+
+@service_router.delete(
+    "/{service_id}",
+    summary="Удаление услуги",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_service(
+    service_id: UUID,
+    request: Request,
+    _: dict = Depends(require_permission_in_context("delete_service")),
+    settings=Depends(get_settings),
+    redis_client=Depends(get_redis),
+):
+    service = await Service.filter(id=service_id).first()
+    if not service:
+        raise HTTPException(status_code=404, detail="Услуга не найдена")
+
+    parcel_id = service.parcel_id  # type: ignore
+    await service.delete()
+
+    # пересчёт после удаления
+    await recalc_parcel_scope_from_services(request, settings, redis_client, parcel_id)
 
 
 @service_router.get(
@@ -86,43 +153,3 @@ async def get_service(
         raise HTTPException(status_code=404, detail="Услуга не найдена")
 
     return ServiceSchema.model_validate(service, from_attributes=True)
-
-
-@service_router.patch(
-    "/{service_id}",
-    response_model=ServiceResponseSchema,
-    summary="Редактирование услуги",
-)
-async def edit_service(
-    service_id: UUID,
-    data: ServiceEditSchema,
-    context: dict = Depends(require_permission_in_context("edit_service")),
-):
-    service = await Service.filter(id=service_id).first()
-
-    if not service:
-        raise HTTPException(status_code=404, detail="Услуга не найдена")
-
-    await service.update_from_dict(data.model_dump(exclude_unset=True))
-    service.modified_by = context["user_id"]
-    await service.save()
-    return ServiceResponseSchema(service_id=service.id)
-
-
-@service_router.delete(
-    "/{service_id}",
-    summary="Удаление услуги",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-async def delete_service(
-    service_id: UUID,
-    _: dict = Depends(require_permission_in_context("delete_service")),
-):
-    service = await Service.filter(id=service_id).first()
-
-    if not service:
-        raise HTTPException(status_code=404, detail="Услуга не найдена")
-
-    await service.delete()
-
-    return
