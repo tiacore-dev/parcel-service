@@ -10,7 +10,9 @@ from tortoise import Tortoise
 
 from app import create_app
 from app.config import ConfigName, _load_settings
+from app.handlers.get_redis import get_redis
 from app.utils.db_helpers import drop_all_tables
+from tests.utils.fakeredis import AsyncMemoryRedis
 
 
 @pytest.fixture(scope="session")
@@ -21,6 +23,12 @@ def test_settings():
 @pytest.fixture(scope="function")
 async def test_app():
     app = create_app(config_name=ConfigName.TEST)
+
+    # ✅ фейковый Redis для app.state.redis
+    app.state.redis = AsyncMemoryRedis()
+
+    # ✅ (опционально) привяжем зависимость get_redis к этому же инстансу
+    app.dependency_overrides[get_redis] = lambda: app.state.redis
     FastAPICache.init(InMemoryBackend())
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
@@ -45,7 +53,7 @@ async def setup_and_clean_db(test_settings):
     await Tortoise.generate_schemas()
 
     yield
-    await drop_all_tables()  # 💥 удаляем все таблицы
+    await drop_all_tables()
     await Tortoise.close_connections()
 
 
