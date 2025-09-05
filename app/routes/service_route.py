@@ -6,7 +6,7 @@ from tiacore_lib.config import get_settings
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
 from tortoise.expressions import Q
 
-from app.database.models import Service
+from app.database.models import Parcel, Service
 from app.handlers.get_redis import get_redis
 from app.handlers.parcel_scope_updater import recalc_parcel_scope_from_services
 from app.pydantic_models.service_models import (
@@ -34,10 +34,16 @@ async def add_service(
     settings=Depends(get_settings),
     redis_client=Depends(get_redis),
 ):
+    parcel = await Parcel.get_or_none(id=data.parcel_id)
+    if not parcel:
+        raise HTTPException(status_code=400, detail="Накладная не найдена")
+    base_value = max(float(parcel.weight or 0.0), float(parcel.volume or 0.0) * 200.0)
+    payload = data.model_dump()
+    payload["base_value"] = base_value
     service = await Service.create(
         created_by=context["user_id"],
         modified_by=context["user_id"],
-        **data.model_dump(),
+        **payload,
     )
     # гарантия консистентности scope
     await recalc_parcel_scope_from_services(request, settings, redis_client, service.parcel_id)  # type: ignore
