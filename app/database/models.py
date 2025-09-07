@@ -102,8 +102,8 @@ class Parcel(Model):
 
     # Общая информация
     note = fields.TextField(null=True)
-    weight = fields.DecimalField(max_digits=10, decimal_places=2)
-    volume = fields.DecimalField(max_digits=10, decimal_places=9)
+    weight = fields.DecimalField(max_digits=12, decimal_places=3)
+    volume = fields.DecimalField(max_digits=14, decimal_places=6)
     places_count = fields.IntField()
 
     created_at = fields.DatetimeField(auto_now_add=True)
@@ -143,10 +143,10 @@ class ParcelCargo(Model):
     length = fields.DecimalField(max_digits=10, decimal_places=2)
     height = fields.DecimalField(max_digits=10, decimal_places=2)
     width = fields.DecimalField(max_digits=10, decimal_places=2)
-    volume = fields.DecimalField(max_digits=10, decimal_places=9)
+    volume = fields.DecimalField(max_digits=14, decimal_places=6)
     quantity = fields.IntField()
-    total_weight = fields.DecimalField(max_digits=10, decimal_places=2)
-    total_volume = fields.DecimalField(max_digits=10, decimal_places=9)
+    total_weight = fields.DecimalField(max_digits=12, decimal_places=3)
+    total_volume = fields.DecimalField(max_digits=14, decimal_places=6)
     comment = fields.TextField(null=True)
 
     created_at = fields.DatetimeField(auto_now_add=True)
@@ -218,8 +218,8 @@ class Service(Model):
     price_id = fields.UUIDField(null=True)
     parcel = fields.ForeignKeyField("models.Parcel", related_name="services")
     service_type = fields.CharEnumField(ServiceType)
-    base_value = fields.FloatField()
-    summ = fields.FloatField(null=True)
+    base_value = fields.DecimalField(max_digits=10, decimal_places=3)
+    summ = fields.DecimalField(max_digits=12, decimal_places=2, null=True)
 
     created_at = fields.DatetimeField(auto_now_add=True)
     created_by = fields.UUIDField()

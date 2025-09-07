@@ -70,7 +70,7 @@ async def add_parcel_cargo(
     create_data = data.model_dump()
     create_data.update(
         {
-            "volume": _q9(volume),
+            "volume": _q9(volume),  # под Decimal(..., 9)
             "total_volume": _q9(total_volume),
             "total_weight": _q2(total_weight),
         }
@@ -122,7 +122,7 @@ async def edit_parcel_cargo(
 
         update_data.update(
             {
-                "volume": _q9(volume),
+                "volume": _q9(volume),  # под Decimal(..., 9)
                 "total_volume": _q9(total_volume),
                 "total_weight": _q2(total_weight),
             }

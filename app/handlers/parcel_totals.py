@@ -1,55 +1,68 @@
 from __future__ import annotations
 
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Union
+from typing import List, Tuple
 from uuid import UUID
 
-from tortoise.functions import Sum
+from fastapi import HTTPException
 
 from app.database.models import Parcel, ParcelCargo
 
-NumberLike = Union[Decimal, float, int, str]
 
-
-def _to_dec(x: NumberLike) -> Decimal:
+def _to_dec(x) -> Decimal:
     return x if isinstance(x, Decimal) else Decimal(str(x))
 
 
-def _q2(x: NumberLike) -> Decimal:
-    return _to_dec(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-
-def _q9(x: NumberLike) -> Decimal:
-    return _to_dec(x).quantize(Decimal("0.000000001"), rounding=ROUND_HALF_UP)
+def _quantize(x: Decimal, places: int) -> Decimal:
+    # places = 2  -> 0.01; places = 9 -> 0.000000001 и т.д.
+    quant = Decimal(1).scaleb(-places)
+    return x.quantize(quant, rounding=ROUND_HALF_UP)
 
 
 async def recompute_parcel_totals(parcel_id: UUID) -> None:
     """
-    Пересчитывает places_count, weight, volume накладной из ParcelCargo.*
-    Правит значения под точность БД и проверяет переполнение под (10,2)/(10,9).
+    Суммируем quantity/total_weight/total_volume по всем грузам этой накладной,
+    квантуем под точность полей Parcel.weight/Parcel.volume и сохраняем.
+    Без QuerySet.aggregate().
     """
     parcel = await Parcel.get_or_none(id=parcel_id)
     if not parcel:
         return
 
-    row = await (
-        ParcelCargo.filter(parcel_id=parcel_id)
-        .annotate(places_sum=Sum("quantity"), weight_sum=Sum("total_weight"), volume_sum=Sum("total_volume"))
-        .values("places_sum", "weight_sum", "volume_sum")
+    # Заберём только нужные поля, чтобы не тащить целые объекты:
+    # вернётся List[Tuple[quantity, total_weight, total_volume]]
+    rows: List[Tuple[int, Decimal | None, Decimal | None]] = await ParcelCargo.filter(parcel_id=parcel_id).values_list(
+        "quantity", "total_weight", "total_volume"
     )
-    first = row[0] if row else {}
-    places = int(first.get("places_sum") or 0)
-    weight = _q2(first.get("weight_sum") or 0)
-    volume = _q9(first.get("volume_sum") or 0)
 
-    # Ограничение для Decimal(10,9): |value| < 10
-    if abs(volume) >= Decimal("10"):
-        # Можно выбросить 400/422 — на ваш выбор
-        from fastapi import HTTPException
+    places_sum = 0
+    weight_sum = Decimal("0")
+    volume_sum = Decimal("0")
 
-        raise HTTPException(status_code=400, detail="Суммарный объём превышает максимально допустимый (9.999999999)")
+    for qty, total_weight, total_volume in rows:
+        places_sum += int(qty or 0)
+        if total_weight is not None:
+            weight_sum += _to_dec(total_weight)
+        if total_volume is not None:
+            volume_sum += _to_dec(total_volume)
 
-    parcel.places_count = places
-    parcel.weight = weight
-    parcel.volume = volume
+    # Подгоняем точность под схему Parcel.*
+    weight_places = Parcel._meta.fields_map["weight"].decimal_places  # type: ignore
+    volume_places = Parcel._meta.fields_map["volume"].decimal_places  # type: ignore
+    weight_sum_q = _quantize(weight_sum, weight_places)
+    volume_sum_q = _quantize(volume_sum, volume_places)
+
+    # Защита от переполнения согласно схеме Decimal(max_digits, decimal_places)
+    vol_field = Parcel._meta.fields_map["volume"]
+    vol_limit = Decimal(10) ** (vol_field.max_digits - vol_field.decimal_places)  # type: ignore
+    if abs(volume_sum_q) >= vol_limit:
+        max_value = _quantize(vol_limit - Decimal(1).scaleb(-volume_places), volume_places)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Суммарный объём {volume_sum_q} превышает максимально допустимый ({max_value})",
+        )
+
+    parcel.places_count = places_sum
+    parcel.weight = weight_sum_q
+    parcel.volume = volume_sum_q
     await parcel.save(update_fields=["places_count", "weight", "volume"])
