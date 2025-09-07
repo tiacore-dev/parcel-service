@@ -66,7 +66,7 @@ async def recompute_services_for_parcel(
     sem = asyncio.Semaphore(concurrency)
 
     async def _quote_one(price_id: UUID):
-        url = f"{settings.PRICE_URL}/api/prices/{price_id}"
+        url = f"{settings.PRICE_URL}/api/calculate/{price_id}"
         payload = {"base_value": str(base_value_dec)}  # Decimal → str без потери точности
         async with sem:
             data, status_code = await http_client.request("POST", url, headers=headers, json=payload)

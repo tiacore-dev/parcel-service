@@ -1,3 +1,5 @@
+from decimal import ROUND_HALF_UP, Decimal
+from typing import Union
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -6,6 +8,7 @@ from tiacore_lib.handlers.dependency_handler import require_permission_in_contex
 from tortoise.expressions import Q
 
 from app.database.models import Parcel, ParcelCargo
+from app.handlers.parcel_totals import recompute_parcel_totals
 from app.handlers.service_updater import recompute_services_for_parcel
 from app.pydantic_models.parcel_cargo_models import (
     ParcelCargoCreateSchema,
@@ -18,7 +21,23 @@ from app.pydantic_models.parcel_cargo_models import (
 
 parcel_cargo_router = APIRouter()
 
-MILLION = 1000000
+
+MILLION = Decimal("1000000")
+
+
+NumberLike = Union[Decimal, float, int, str]
+
+
+def _to_dec(x: NumberLike) -> Decimal:
+    return x if isinstance(x, Decimal) else Decimal(str(x))
+
+
+def _q2(x: NumberLike) -> Decimal:
+    return _to_dec(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def _q9(x: NumberLike) -> Decimal:
+    return _to_dec(x).quantize(Decimal("0.000000001"), rounding=ROUND_HALF_UP)
 
 
 @parcel_cargo_router.post(
@@ -37,24 +56,31 @@ async def add_parcel_cargo(
     if not parcel:
         raise HTTPException(status_code=400, detail="Накладная не найдена")
 
-    volume = (data.length * data.height * data.width) / MILLION
-    total_volume = volume * data.quantity
-    total_weight = data.weight * data.quantity
+    # считаем аккуратно в Decimal
+    length = Decimal(str(data.length))
+    height = Decimal(str(data.height))
+    width = Decimal(str(data.width))
+    weight1 = Decimal(str(data.weight))
+    qty = Decimal(str(data.quantity))
+
+    volume = (length * height * width) / MILLION
+    total_volume = volume * qty
+    total_weight = weight1 * qty
 
     create_data = data.model_dump()
     create_data.update(
         {
-            "volume": volume,
-            "total_volume": total_volume,
-            "total_weight": total_weight,
+            "volume": _q9(volume),
+            "total_volume": _q9(total_volume),
+            "total_weight": _q2(total_weight),
         }
     )
 
     cargo = await ParcelCargo.create(created_by=context["user_id"], modified_by=context["user_id"], **create_data)
-    parcel.places_count += cargo.quantity
-    parcel.volume += cargo.total_volume
-    parcel.weight += cargo.total_weight
-    await parcel.save()
+
+    # ✅ единый пересчёт сводных полей Parcel
+    await recompute_parcel_totals(parcel.id)
+    # ✅ пересчёт base_value + суммы услуг
     await recompute_services_for_parcel(settings, request, parcel.id, modified_by=context["user_id"])
 
     return ParcelCargoResponseSchema(cargo_id=cargo.id)
@@ -73,7 +99,6 @@ async def edit_parcel_cargo(
     context: dict = Depends(require_permission_in_context("edit_parcel_cargo")),
 ):
     cargo = await ParcelCargo.filter(id=cargo_id).prefetch_related("parcel").first()
-
     if not cargo:
         raise HTTPException(status_code=404, detail="Груз не найден")
 
@@ -83,39 +108,33 @@ async def edit_parcel_cargo(
 
     update_data = data.model_dump(exclude_unset=True)
 
-    # Пересчёт объемов и веса, если изменились параметры
-    if {"length", "height", "weight", "quantity"} & update_data.keys():
-        length = update_data.get("length", cargo.length)
-        height = update_data.get("height", cargo.height)
-        width = update_data.get("width", cargo.weight)
-        weight = update_data.get("weight", cargo.weight)
-
-        quantity = update_data.get("quantity", cargo.quantity)
+    # если изменились габариты/вес/кол-во — пересчитать производные поля груза
+    if {"length", "height", "width", "weight", "quantity"} & set(update_data.keys()):
+        length = Decimal(str(update_data.get("length", cargo.length)))
+        height = Decimal(str(update_data.get("height", cargo.height)))
+        width = Decimal(str(update_data.get("width", cargo.width)))  # <-- фикс
+        weight1 = Decimal(str(update_data.get("weight", cargo.weight)))
+        qty = Decimal(str(update_data.get("quantity", cargo.quantity)))
 
         volume = (length * height * width) / MILLION
-        total_volume = volume * quantity
-        total_weight = weight * quantity
+        total_volume = volume * qty
+        total_weight = weight1 * qty
 
         update_data.update(
             {
-                "volume": volume,
-                "total_volume": total_volume,
-                "total_weight": total_weight,
+                "volume": _q9(volume),
+                "total_volume": _q9(total_volume),
+                "total_weight": _q2(total_weight),
             }
         )
-        parcel.places_count -= cargo.quantity
-        parcel.volume -= cargo.total_volume
-        parcel.weight -= cargo.total_weight
-
-        parcel.places_count += quantity
-        parcel.volume += total_volume
-        parcel.weight += total_weight
-
-        await parcel.save()
 
     await cargo.update_from_dict(update_data)
     cargo.modified_by = context["user_id"]
     await cargo.save()
+
+    # ✅ единый пересчёт сводных полей Parcel
+    await recompute_parcel_totals(parcel.id)
+    # ✅ пересчёт base_value + суммы услуг
     await recompute_services_for_parcel(settings, request, parcel.id, modified_by=context["user_id"])
 
     return ParcelCargoResponseSchema(cargo_id=cargo.id)
@@ -133,18 +152,16 @@ async def delete_parcel_cargo(
     context: dict = Depends(require_permission_in_context("delete_parcel_cargo")),
 ):
     cargo = await ParcelCargo.filter(id=cargo_id).prefetch_related("parcel").first()
-
     if not cargo:
         raise HTTPException(status_code=404, detail="Груз не найден")
-    parcel = await Parcel.get_or_none(id=cargo.parcel.id)
-    if not parcel:
-        raise HTTPException(status_code=400, detail="Накладная не найдена")
-    parcel.places_count -= cargo.quantity
-    parcel.volume -= cargo.total_volume
-    parcel.weight -= cargo.total_weight
-    await parcel.save()
+
+    parcel_id = cargo.parcel.id
     await cargo.delete()
-    await recompute_services_for_parcel(settings, request, parcel.id, modified_by=context["user_id"])
+
+    # ✅ единый пересчёт сводных полей Parcel
+    await recompute_parcel_totals(parcel_id)
+    # ✅ пересчёт base_value + суммы услуг
+    await recompute_services_for_parcel(settings, request, parcel_id, modified_by=context["user_id"])
     return
 
 
