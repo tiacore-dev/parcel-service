@@ -51,7 +51,7 @@ async def recompute_services_for_parcel(
     headers = get_auth_headers(request)
 
     async def quote_one(pid):
-        url = f"{price_url}/api/prices/{pid}/quote"
+        url = f"{price_url}/api/calculate/{pid}"
         data, status = await http.request("POST", url, headers=headers, json={"base_value": str(base_value)})
         if status == 200 and isinstance(data, dict) and "summ" in data:
             try:
