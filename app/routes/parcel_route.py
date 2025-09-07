@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
@@ -12,8 +13,15 @@ from tiacore_lib.http.http_client import (
 
 # from tiacore_lib.utils.validate_helpers import validate_company_access
 from tortoise.expressions import Q
+from tortoise.transactions import in_transaction
 
-from app.database.models import Parcel, Service, ServiceType
+from app.database.models import (
+    Parcel,
+    ParcelCargo,  # проверь импорты
+    ParcelProduct,
+    Service,
+    ServiceType,
+)
 from app.handlers.get_redis import get_redis
 from app.handlers.parcel_scope_updater import recalc_parcel_scope_from_services, reprice_and_recalc_scope_for_parcel
 from app.handlers.scope_handler import (
@@ -24,6 +32,10 @@ from app.handlers.scope_handler import (
 )
 from app.handlers.status_handler import get_cached_parcel_status_data
 from app.pydantic_models.get_ids_models import GetPriceIDSchema
+from app.pydantic_models.parcel_deep_models import (
+    ParcelDeepCreateResponse,
+    ParcelDeepCreateSchema,
+)
 from app.pydantic_models.parcel_models import (
     ParcelAllSchema,
     ParcelCreateSchema,
@@ -97,6 +109,159 @@ async def add_parcel(
         await recalc_parcel_scope_from_services(request, settings, redis_client, parcel.id)
 
     return ParcelResponseSchema(parcel_id=parcel.id)
+
+
+@parcel_router.post(
+    "/add-with-items",
+    response_model=ParcelDeepCreateResponse,
+    summary="Добавить накладную сразу с грузами/товарами/услугами (атомарно)",
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_parcel_with_items(
+    request: Request,
+    data: ParcelDeepCreateSchema,
+    context=Depends(with_permission_and_company_from_body_check("add_parcel")),
+    settings=Depends(get_settings),
+    redis_client=Depends(get_redis),
+):
+    # подготовим данные накладной
+    create_data = data.model_dump()
+    if not data.name:
+        create_data["name"] = await generate_parcel_name()
+
+    # Если вес/объем/места не заданы — посчитаем из cargo
+    def _sum_from_cargo():
+        if not data.cargo:
+            return None, None, None
+        total_weight = Decimal("0")
+        total_volume = Decimal("0")
+        total_places = 0
+        for c in data.cargo:
+            total_weight += c.weight * c.quantity
+            # единицы объёма зависят от твоей доменной логики;
+            # чаще переводят мм в м: (l*w*h)/1_000_000_000 — тут оставлю просто l*w*h
+            vol_one = c.length * c.width * c.height
+            total_volume += vol_one * c.quantity
+            total_places += c.quantity
+        return total_weight, total_volume, total_places
+
+    if (data.weight is None or data.weight == 0) or (data.volume is None) or (data.places_count is None):
+        sw, sv, sp = _sum_from_cargo()
+        if sw is not None:
+            if data.weight is None or data.weight == 0:
+                create_data["weight"] = sw
+            if data.volume is None:
+                create_data["volume"] = sv
+            if data.places_count is None:
+                create_data["places_count"] = sp
+
+    # создаём всё атомарно
+    cargo_ids: list[UUID] = []
+    product_ids: list[UUID] = []
+    service_ids: list[UUID] = []
+
+    async with in_transaction() as conn:
+        parcel = await Parcel.create(
+            created_by=context["user_id"], modified_by=context["user_id"], using_db=conn, **create_data
+        )
+
+        # 1) базовая (STANDARD) услуга от контракта/маршрута
+        headers = get_auth_headers(request)
+        json_data = GetPriceIDSchema(
+            service_type=ServiceType.STANDARD,
+            sender_city_id=data.sender_city,
+            recipient_city_id=data.recipient_city,
+            sender_warehouse_id=data.sender_warehouse,
+            recipient_warehouse_id=data.recipient_warehouse,
+        )
+        response_data, status_code = await http_client.request(
+            "POST",
+            f"{settings.CONTRACT_URL}/api/get-company-ids/{data.contract_id}",
+            headers=headers,
+            json=json_data.model_dump(mode="json"),
+        )
+        if status_code == 200:
+            s = await Service.create(
+                created_by=context["user_id"],
+                modified_by=context["user_id"],
+                using_db=conn,
+                parcel=parcel,
+                contract_id=data.contract_id,
+                base_value=0,
+                summ=0,
+                service_type=ServiceType.STANDARD,
+                price_id=response_data["price_id"],
+            )
+            service_ids.append(s.id)
+
+            # индекс видимости компаний
+            buyer = response_data.get("buyer_company_ids") or []
+            seller = response_data.get("seller_company_ids") or []
+            company_ids = [UUID(str(x)) for x in [*buyer, *seller]]
+            if company_ids:
+                await add_companies_with_index(redis_client, parcel.id, company_ids)
+        else:
+            # можно выбросить 422/400 с деталями ответа контракта
+            raise HTTPException(400, detail="Не удалось получить price_id для стандартной услуги")
+
+        # 2) дополнительные услуги (если переданы)
+        for es in data.extra_services:
+            s = await Service.create(
+                created_by=context["user_id"],
+                modified_by=context["user_id"],
+                using_db=conn,
+                parcel=parcel,
+                contract_id=es.contract_id or data.contract_id,
+                base_value=es.base_value,
+                summ=es.summ,
+                service_type=es.service_type,
+                price_id=es.price_id,
+            )
+            service_ids.append(s.id)
+
+        # 3) грузы
+        # (по имени типа вернём потом в view; здесь создаём по id)
+        for c in data.cargo:
+            cg = await ParcelCargo.create(
+                created_by=context["user_id"],
+                modified_by=context["user_id"],
+                using_db=conn,
+                parcel_id=parcel.id,
+                cargo_type_id=c.cargo_type_id,
+                weight=c.weight,
+                length=c.length,
+                height=c.height,
+                width=c.width,
+                quantity=c.quantity,
+                comment=c.comment,
+            )
+            cargo_ids.append(cg.id)
+
+        # 4) товары
+        for p in data.products:
+            pr = await ParcelProduct.create(
+                created_by=context["user_id"],
+                modified_by=context["user_id"],
+                using_db=conn,
+                parcel_id=parcel.id,
+                name=p.name,
+                price=p.price,
+                quantity=p.quantity,
+                article_number=p.article_number,
+                delivered=p.delivered or False,
+                serial_number=p.serial_number,
+            )
+            product_ids.append(pr.id)
+
+    # После коммита — пересчёты (вне транзакции)
+    await recalc_parcel_scope_from_services(request, settings, redis_client, parcel.id)
+
+    return ParcelDeepCreateResponse(
+        parcel_id=parcel.id,
+        cargo_ids=cargo_ids,
+        product_ids=product_ids,
+        service_ids=service_ids,
+    )
 
 
 @parcel_router.patch(

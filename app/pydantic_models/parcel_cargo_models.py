@@ -4,7 +4,7 @@ from typing import List, Literal, Optional
 from uuid import UUID
 
 from fastapi import Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ParcelCargoCreateSchema(BaseModel):
@@ -43,7 +43,7 @@ class ParcelCargoResponseSchema(BaseModel):
 
 class ParcelCargoSchema(BaseModel):
     id: UUID = Field(..., alias="cargo_id")
-    cargo_type_id: Optional[UUID] = Field(None)
+    cargo_type: Optional[str] = None
     parcel_id: UUID
     weight: Decimal
     length: Decimal
@@ -59,6 +59,16 @@ class ParcelCargoSchema(BaseModel):
     created_by: UUID = Field(...)
     modified_at: datetime = Field(...)
     modified_by: UUID = Field(...)
+
+    @field_validator("cargo_type", mode="before")
+    @classmethod
+    def _extract_name(cls, v):
+        # если уже строка — вернём как есть
+        if isinstance(v, str) or v is None:
+            return v
+        # если это объект модели (prefetch_related загрузил его)
+        name = getattr(v, "name", None)
+        return name if name is not None else str(v)
 
     class Config:
         from_attributes = True

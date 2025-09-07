@@ -190,7 +190,13 @@ async def get_parcel_cargo(
     offset = (page - 1) * page_size
 
     total_count = await ParcelCargo.filter(query).count()
-    cargo = await ParcelCargo.filter(query).order_by(sort_field).offset(offset).limit(page_size)
+    cargo = (
+        await ParcelCargo.filter(query)
+        .prefetch_related("cargo_type")
+        .order_by(sort_field)
+        .offset(offset)
+        .limit(page_size)
+    )
 
     return ParcelCargoListResponseSchema(
         total=total_count,
@@ -207,7 +213,7 @@ async def get_parcel_cargo_by_id(
     cargo_id: UUID,
     _: dict = Depends(require_permission_in_context("view_parcel_cargo")),
 ):
-    cargo = await ParcelCargo.filter(id=cargo_id).first()
+    cargo = await ParcelCargo.filter(id=cargo_id).prefetch_related("cargo_type").first()
 
     if not cargo:
         raise HTTPException(status_code=404, detail="Груз не найден")
