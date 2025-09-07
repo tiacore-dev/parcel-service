@@ -1,11 +1,12 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from tiacore_lib.config import get_settings
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
 from tortoise.expressions import Q
 
 from app.database.models import Parcel, ParcelCargo
-from app.handlers.service_updater import recompute_services_base_value_for_parcel
+from app.handlers.service_updater import recompute_services_for_parcel
 from app.pydantic_models.parcel_cargo_models import (
     ParcelCargoCreateSchema,
     ParcelCargoEditSchema,
@@ -27,7 +28,9 @@ MILLION = 1000000
     status_code=status.HTTP_201_CREATED,
 )
 async def add_parcel_cargo(
+    request: Request,
     data: ParcelCargoCreateSchema,
+    settings=Depends(get_settings),
     context: dict = Depends(require_permission_in_context("add_parcel_cargo")),
 ):
     parcel = await Parcel.get_or_none(id=data.parcel_id)
@@ -52,7 +55,7 @@ async def add_parcel_cargo(
     parcel.volume += cargo.total_volume
     parcel.weight += cargo.total_weight
     await parcel.save()
-    await recompute_services_base_value_for_parcel(parcel.id, modified_by=context["user_id"])
+    await recompute_services_for_parcel(settings, request, parcel.id, modified_by=context["user_id"])
 
     return ParcelCargoResponseSchema(cargo_id=cargo.id)
 
@@ -63,8 +66,10 @@ async def add_parcel_cargo(
     summary="Редактирование груза накладной",
 )
 async def edit_parcel_cargo(
+    request: Request,
     cargo_id: UUID,
     data: ParcelCargoEditSchema,
+    settings=Depends(get_settings),
     context: dict = Depends(require_permission_in_context("edit_parcel_cargo")),
 ):
     cargo = await ParcelCargo.filter(id=cargo_id).prefetch_related("parcel").first()
@@ -111,7 +116,7 @@ async def edit_parcel_cargo(
     await cargo.update_from_dict(update_data)
     cargo.modified_by = context["user_id"]
     await cargo.save()
-    await recompute_services_base_value_for_parcel(parcel.id, modified_by=context["user_id"])
+    await recompute_services_for_parcel(settings, request, parcel.id, modified_by=context["user_id"])
 
     return ParcelCargoResponseSchema(cargo_id=cargo.id)
 
@@ -122,7 +127,9 @@ async def edit_parcel_cargo(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_parcel_cargo(
+    request: Request,
     cargo_id: UUID,
+    settings=Depends(get_settings),
     context: dict = Depends(require_permission_in_context("delete_parcel_cargo")),
 ):
     cargo = await ParcelCargo.filter(id=cargo_id).prefetch_related("parcel").first()
@@ -137,7 +144,7 @@ async def delete_parcel_cargo(
     parcel.weight -= cargo.total_weight
     await parcel.save()
     await cargo.delete()
-    await recompute_services_base_value_for_parcel(parcel.id, modified_by=context["user_id"])
+    await recompute_services_for_parcel(settings, request, parcel.id, modified_by=context["user_id"])
     return
 
 

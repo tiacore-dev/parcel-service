@@ -22,6 +22,7 @@ class BaseConfig(SharedBaseConfig):
     AUTH_BROKER_URL: str = ""
 
     CONTRACT_URL: str = ""
+    PRICE_URL: str = ""
 
     class Config:
         env_file = ".env"
