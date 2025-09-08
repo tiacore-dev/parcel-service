@@ -8,7 +8,9 @@ from tortoise.expressions import Q
 
 from app.database.models import Parcel, Service
 from app.handlers.get_redis import get_redis
-from app.handlers.parcel_scope_updater import recalc_parcel_scope_from_services
+from app.handlers.parcel_scope_updater import recalc_parcel_scope_from_services, reprice_and_recalc_scope_for_parcel
+from app.handlers.pricing_helpers import compute_base_value_for_service, fetch_price_id_for_service
+from app.handlers.scope_handler import add_companies_with_index
 from app.pydantic_models.service_models import (
     ServiceCreateSchema,
     ServiceEditSchema,
@@ -37,16 +39,41 @@ async def add_service(
     parcel = await Parcel.get_or_none(id=data.parcel_id)
     if not parcel:
         raise HTTPException(status_code=400, detail="Накладная не найдена")
-    base_value = max(float(parcel.weight or 0.0), float(parcel.volume or 0.0) * 200.0)
-    payload = data.model_dump()
-    payload["base_value"] = base_value
+
+    # 1) считаем base_value
+    base_value = compute_base_value_for_service(parcel, data.service_type)
+
+    # 2) подбираем price_id по контракту/маршруту
+    # контракт берём из data.contract_id (у сервиса свой контракт)
+    price_id, company_ids = await fetch_price_id_for_service(
+        request=request, settings=settings, service_type=data.service_type, parcel=parcel
+    )
+
+    # 3) создаём услугу
     service = await Service.create(
         created_by=context["user_id"],
         modified_by=context["user_id"],
-        **payload,
+        service_type=data.service_type,
+        contract_id=data.contract_id,
+        price_id=price_id,
+        parcel_id=data.parcel_id,
+        base_value=base_value,
+        # summ не задаём — посчитается в repricer-е
     )
-    # гарантия консистентности scope
-    await recalc_parcel_scope_from_services(request, settings, redis_client, service.parcel_id)  # type: ignore
+
+    # (опционально) расширить видимость накладной доп. компаниями тарифа
+    if company_ids:
+        await add_companies_with_index(redis_client, parcel.id, company_ids)
+
+    # 4) репрайсим все услуги накладной и пересобираем scope
+    await reprice_and_recalc_scope_for_parcel(
+        request,
+        settings,
+        redis_client,
+        parcel_id=service.parcel_id,  # type: ignore
+        modified_by=context["user_id"],
+    )
+
     return ServiceResponseSchema(service_id=service.id)
 
 
@@ -63,21 +90,47 @@ async def edit_service(
     settings=Depends(get_settings),
     redis_client=Depends(get_redis),
 ):
-    service = await Service.filter(id=service_id).first()
+    service = await Service.get_or_none(id=service_id)
     if not service:
         raise HTTPException(status_code=404, detail="Услуга не найдена")
 
     old_parcel_id = service.parcel_id  # type: ignore
 
+    # применяем «простые» изменения (без вычисляемых полей)
     await service.update_from_dict(data.model_dump(exclude_unset=True))
+    # нужно актуальный parcel для перерасчётов
+    parcel = await Parcel.get_or_none(id=service.parcel_id)  # type: ignore
+    if not parcel:
+        raise HTTPException(status_code=400, detail="Накладная не найдена")
+
+    # 1) пересчитать base_value
+    service.base_value = compute_base_value_for_service(parcel, service.service_type)  # type: ignore
+
+    # 2) при изменении service_type/contract_id/маршрута — перебрать price_id
+    price_id, company_ids = await fetch_price_id_for_service(
+        request=request,
+        settings=settings,
+        service_type=service.service_type,
+        parcel=parcel,  # type: ignore
+    )
+    service.price_id = price_id
+
     service.modified_by = context["user_id"]
     await service.save()
 
-    # если переназначили на другую накладную — пересчитать обе
+    if company_ids:
+        await add_companies_with_index(redis_client, parcel.id, company_ids)
+
+    # если переехала на другую накладную — пересчитать обе
     new_parcel_id = service.parcel_id  # type: ignore
     if new_parcel_id != old_parcel_id:
-        await recalc_parcel_scope_from_services(request, settings, redis_client, old_parcel_id)
-    await recalc_parcel_scope_from_services(request, settings, redis_client, new_parcel_id)
+        await reprice_and_recalc_scope_for_parcel(
+            request, settings, redis_client, parcel_id=old_parcel_id, modified_by=context["user_id"]
+        )
+
+    await reprice_and_recalc_scope_for_parcel(
+        request, settings, redis_client, parcel_id=new_parcel_id, modified_by=context["user_id"]
+    )
 
     return ServiceResponseSchema(service_id=service.id)
 

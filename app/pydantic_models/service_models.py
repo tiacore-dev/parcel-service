@@ -10,10 +10,7 @@ from tiacore_lib.enums import ServiceType
 class ServiceCreateSchema(BaseModel):
     service_type: ServiceType
     contract_id: UUID
-    price_id: Optional[UUID] = Field(None)
     parcel_id: UUID
-    base_value: float
-    summ: Optional[float] = Field(None)
 
     class Config:
         from_attributes = True
@@ -22,10 +19,7 @@ class ServiceCreateSchema(BaseModel):
 class ServiceEditSchema(BaseModel):
     service_type: Optional[ServiceType] = Field(None)
     contract_id: Optional[UUID] = Field(None)
-    price_id: Optional[UUID] = Field(None)
     parcel_id: Optional[UUID] = Field(None)
-    base_value: Optional[float] = Field(None)
-    summ: Optional[float] = Field(None)
 
     class Config:
         from_attributes = True
