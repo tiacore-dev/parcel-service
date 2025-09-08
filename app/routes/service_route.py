@@ -46,7 +46,7 @@ async def add_service(
     # 2) подбираем price_id по контракту/маршруту
     # контракт берём из data.contract_id (у сервиса свой контракт)
     price_id, company_ids = await fetch_price_id_for_service(
-        request=request, settings=settings, service_type=data.service_type, parcel=parcel
+        request=request, settings=settings, service_type=data.service_type, parcel=parcel, contract_id=data.contract_id
     )
 
     # 3) создаём услугу
@@ -112,6 +112,7 @@ async def edit_service(
         settings=settings,
         service_type=service.service_type,
         parcel=parcel,  # type: ignore
+        contract_id=data.contract_id if data.contract_id else service.contract_id,
     )
     service.price_id = price_id
 

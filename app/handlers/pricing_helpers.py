@@ -20,7 +20,7 @@ def compute_base_value_for_service(parcel: Parcel, service_type: ServiceType) ->
 
 
 async def fetch_price_id_for_service(
-    request: Request, settings, service_type: ServiceType, parcel: Parcel
+    request: Request, settings, service_type: ServiceType, parcel: Parcel, contract_id: UUID
 ) -> tuple[UUID, list[UUID]]:
     """
     Получаем price_id через CONTRACT_URL так же, как в создании накладной.
@@ -41,9 +41,7 @@ async def fetch_price_id_for_service(
 
     response_data, status_code = await http_client.request(
         "POST",
-        f"{settings.CONTRACT_URL}/api/get-company-ids/{
-            parcel.contract_id if hasattr(parcel, 'contract_id') else None or ''  # type: ignore
-        }",
+        f"{settings.CONTRACT_URL}/api/get-company-ids/{contract_id}",
         headers=headers,
         json=payload.model_dump(mode="json"),
     )
